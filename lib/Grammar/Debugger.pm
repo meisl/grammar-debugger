@@ -48,8 +48,8 @@ my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
         indent           => 0,
         stop-at-fail     => False,
         stop-at-name     => '',
-        breakpoints      => ().list,
-        cond-breakpoints => ().hash,
+        breakpoints      => [],
+        cond-breakpoints => Hash.new(),
     ).hash;
 
     method add_method(Mu \obj, $name, $code) {
@@ -76,7 +76,7 @@ my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
                     callsame;
                 });
                 $meth does Wrapped;
-                say(">>>>find_method $name: " ~ $meth.perl);
+                #say(">>>>find_method $name: " ~ $meth.perl);
             }
         }
         return $meth unless $meth ~~ Regex;
@@ -111,8 +111,8 @@ my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
         my $breakpoint-hit = 
             $point == EnterRule && $name eq $!state{'stop-at-name'} ||
             $point == ExitRule && !$match && $!state{'stop-at-fail'} ||
-            $point == EnterRule && $name eq any($!state{'breakpoints'}) ||
-            $point == ExitRule && $name eq any($!state{'cond-breakpoints'}.keys)
+            $point == EnterRule && $name eq $!state{'breakpoints'}.any ||
+            $point == ExitRule && $name eq $!state{'cond-breakpoints'}.keys.any
                 && $!state{'cond-breakpoints'}{$name}.ACCEPTS($match);
         if $breakpoint-hit {
             self.fireEvent('breakpoint', $point, $name, $match);

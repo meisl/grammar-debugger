@@ -66,7 +66,7 @@ sub remote-control(&block, :$diag = False, :@answers = ()) { # capture output an
 {
     my $unsubscribe = Sample.HOW.subscribe('breakpoint', -> {});
 
-    isa_ok $unsubscribe, Code, '.HOW.subscribe returns Code';
+    isa_ok $unsubscribe, Code, '.HOW.subscribe(...) returns Code';
     lives_ok { $unsubscribe() }, 'can unsubscribe';
     lives_ok { $unsubscribe() }, 'can unsubscribe again (is a no-op)';
 }
@@ -92,5 +92,19 @@ sub remote-control(&block, :$diag = False, :@answers = ()) { # capture output an
 }
 
 
-#    diag 'calls (' ~ @calls.elems ~ '):';
-#    diag @calls.join("\n");
+{
+    my @calls = ();
+    my $unsubscribe = Sample.HOW.subscribe('breakpoint', -> |args { @calls.push(args); });
+
+    remote-control( { Sample.parse('baz') },    # regex baz NOT marked 'is breakpoint';
+        #:diag,
+        :answers(['bp add foo','bp add baz', 'r']) # add breakpoints at foo and baz
+    );
+
+    is @calls.elems, 3, 'called back at all breakpoints';
+    
+
+    $unsubscribe();
+
+
+}
