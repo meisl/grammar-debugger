@@ -9,46 +9,51 @@ plan *;
 
 
 grammar Sample {
-    rule TOP { <foo> }
-    token foo { 
-        [
-        | x
-        | <bar>
-        | <baz>
-        ]
-    }
+    rule  TOP               { <foo> }
+    token foo               { x | <bar> | <baz> }
     regex bar is breakpoint { bar }
-    regex baz { baz }
+    regex baz               { baz }
 
     method fizzbuzz {}
 }
 
 
-sub test_parse($grammar, $s) { # capture output and remote-control Debugger
+sub test_parse($grammar, $s, :$diag = False, :@answers = ()) { # capture output and remote-control Debugger
     my @calls = ();
-    my $*OUT = class { method say(*@x) {
-        @calls.push('  say(' ~ @x.map(*.perl).join(', ') ~ ');');
-    }; method print(*@x) {
-        @calls.push('print(' ~ @x.map(-> $s { colorstrip($s).perl }).join(', ') ~ ');');
-    }; method flush(*@x) {
-        @calls.push('flush(' ~ @x.map(*.perl).join(', ') ~ ')');
-    } };
-    my $*IN  = class {
-        method get(*@x) {
-            my $out = "r";
-            @calls.push('  get(' ~ @x.map(*.perl).join(', ') ~ '); # ~> ' ~ $out.perl);
-            print ($out ~ "\n");
+    {
+        my $*OUT = class { method say(*@x) {
+            @calls.push('  say(' ~ @x.map(*.perl).join(', ') ~ ');');
+        }; method print(*@x) {
+            @calls.push('print(' ~ @x.map(-> $s { colorstrip($s).perl }).join(', ') ~ ');');
+        }; method flush(*@x) {
+            @calls.push('flush(' ~ @x.map(*.perl).join(', ') ~ ')');
+        } };
+        my $*IN  = class {
+            method get(*@x) {
+                my $out = (@answers.elems > 0) ?? @answers.shift !! "r";
+                @calls.push('  get(' ~ @x.map(*.perl).join(', ') ~ '); # ~> ' ~ $out.perl);
+                print ($out ~ "\n");
 
-            return $out;
-        }
-    };
-    $grammar.parse($s);
+                return $out;
+            }
+        };
+        $grammar.subparse($s);
+    }
+    if $diag {
+        diag @calls.join("\n");
+    }
     return @calls;
 }
 
-
-lives_ok { test_parse(Sample, 'baz') },
-    'grammar.parse(...) with the debugger works';
+{
+    my @io-lines;
+    lives_ok { @io-lines = test_parse(Sample, 'baz', :diag) },
+        'grammar.parse(...) with the debugger works';
+    is @io-lines.grep(/'get()'/).elems, 2, "stopped after TOP and at breakpoint";
+    
+    @io-lines = test_parse(Sample, 'baz', :diag);
+    is @io-lines.grep(/'get()'/).elems, 2, "auto-continue is reset to False on 2nd parse";
+}
 
 
 {
@@ -63,7 +68,7 @@ lives_ok { test_parse(Sample, 'baz') },
     my @calls = ();
     my $unsubscribe = Sample.HOW.subscribe('breakpoint', -> |args { @calls.push(args); });
 
-    test_parse(Sample, 'bar').join("\n");    # regex bar marked 'is breakpoint';
+    test_parse(Sample, 'bar');    # regex bar marked 'is breakpoint';
 
     is @calls.elems, 1, 'called back once';
     is @calls[0][1], 'bar', 'called back at "is breakpoint"-regex';
@@ -71,9 +76,12 @@ lives_ok { test_parse(Sample, 'baz') },
     #diag @calls.perl;
 
     $unsubscribe();
-    @calls = ();
     test_parse(Sample, 'bar');
-    is @calls.elems, 0, 'not called back after unsubscribe';
+    is @calls.elems, 1, 'not called back after unsubscribe';
+
+    $unsubscribe = Sample.HOW.subscribe('breakpoint', -> |args { @calls.push(args); });
+    test_parse(Sample, 'bar');
+
 }
 
 
