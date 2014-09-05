@@ -60,30 +60,47 @@ my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
         }
     }
 
-    method !set-state (
+   
+    method !set-state ( # leaves untouched anything that's not defined
+        Bool  :$auto-continue?,
+        Int   :$indent?,
+        Bool  :$stop-at-fail?,
+        Str   :$stop-at-name?,
+        List  :$breakpoints?,
+        Hash  :$cond-breakpoints?
+    ) {
+        if $auto-continue.defined       { $!state{'auto-continue'}    = $auto-continue     }
+        if $indent.defined              { $!state{'indent'}           = $indent;           }
+        if $stop-at-fail.defined        { $!state{'stop-at-fail'}     = $stop-at-fail;     }
+        if $stop-at-name.defined        { $!state{'stop-at-name'}     = $stop-at-name;     }
+        if $breakpoints.defined         { $!state{'breakpoints'}      = $breakpoints;      }
+        if $cond-breakpoints.defined    { $!state{'cond-breakpoints'} = $cond-breakpoints; }
+    }
+
+    method !init-state ( # sets default for  anything that's not defined
         Bool  :$auto-continue    = False,
         Int   :$indent           = 0,
         Bool  :$stop-at-fail     = False,
         Str   :$stop-at-name     = '',
-        Array :$breakpoints?,
+        List  :$breakpoints?,
         Hash  :$cond-breakpoints?
     ) {
-        $!state{'auto-continue'}    = $auto-continue;
-        $!state{'indent'}           = $indent;
-        $!state{'stop-at-fail'}     = $stop-at-fail;
-        $!state{'stop-at-name'}     = $stop-at-name;
-
-        $!state{'breakpoints'} = $breakpoints.defined 
-            ?? $breakpoints 
-            !! @!regexes.grep({ $_ ~~ Breakpoint}).map({ $_.name }).eager    # must evaluate - don't know why...?!
-        ;
-
-        $!state{'cond-breakpoints'} = $cond-breakpoints.defined
-            ?? $cond-breakpoints
-            !! @!regexes.grep({ $_ ~~ ConditionalBreakpoint }).map({ $_.name => $_.breakpoint-condition }).eager;
-
-        say ">>>set-state: " ~ $!state{'breakpoints'}.perl;
-        say ">>>set-state: " ~ $!state{'cond-breakpoints'}.perl;
+        self!set-state(
+            :$auto-continue,
+            :$indent,
+            :$stop-at-fail,
+            :$stop-at-name,
+            :breakpoints($breakpoints
+                // @!regexes.grep({ $_ ~~ Breakpoint}).map({
+                       $_.name
+                   }).eager)    # must evaluate - don't know why...?!
+            :cond-breakpoints($cond-breakpoints
+                // @!regexes.grep({ $_ ~~ ConditionalBreakpoint }).map({
+                       $_.name => $_.breakpoint-condition
+                   }).hash)
+        );
+        #say $!state{'breakpoints'}.perl;
+        #say $!state{'cond-breakpoints'}.perl;
     }
     
     # just a tag to see if method is already wrapped
@@ -91,10 +108,11 @@ my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
 
     method find_method($obj, $name) {
         my $meth := callsame;
+        #say ">>>>find_method $name";
         if $name eq any('parse', 'subparse') {
             if $meth !~~ Wrapped {
                 $meth.wrap(-> |args {
-                    self!set-state(); # initialize to default values
+                    self!init-state(); # initialize to default values
                     callsame;
                 });
                 $meth does Wrapped;
@@ -147,21 +165,24 @@ my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
                 $done = True;
                 given @parts[0] {
                     when '' {
-                        $!state{'auto-continue'} = False;
-                        $!state{'stop-at-fail'} = False;
-                        $!state{'stop-at-name'} = '';
+                        self!set-state(
+                            :auto-continue(False),
+                            :stop-at-fail(False),
+                            :stop-at-name(''));
                     }
                     when 'r' {
                         given +@parts {
                             when 1 {
-                                $!state{'auto-continue'} = True;
-                                $!state{'stop-at-fail'} = False;
-                                $!state{'stop-at-name'} = '';
+                                self!set-state(
+                                    :auto-continue(True),
+                                    :stop-at-fail(False),
+                                    :stop-at-name(''));
                             }
                             when 2 {
-                                $!state{'auto-continue'} = True;
-                                $!state{'stop-at-fail'} = False;
-                                $!state{'stop-at-name'} = @parts[1];
+                                self!set-state(
+                                    :auto-continue(True),
+                                    :stop-at-fail(False),
+                                    :stop-at-name(@parts[1]));
                             }
                             default {
                                 usage();
@@ -170,9 +191,10 @@ my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
                        }
                     }
                     when 'rf' {
-                        $!state{'auto-continue'} = True;
-                        $!state{'stop-at-fail'} = True;
-                        $!state{'stop-at-name'} = '';
+                        self!set-state(
+                            :auto-continue(True),
+                            :stop-at-fail(True),
+                            :stop-at-name(''));
                     }
                     when 'bp' {
                         if +@parts == 2 && @parts[1] eq 'list' {
@@ -190,11 +212,11 @@ my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
                                 say "No breakpoint '@parts[2]'";
                             }
                             else {
-                                $!state{'breakpoints'} = @rm'd;
+                                self!set-state(:breakpoints(@rm'd));
                             }
                         }
                         elsif +@parts == 2 && @parts[1] eq 'rm' {
-                            $!state{'breakpoints'} = [];
+                            self!set-state(:breakpoints());
                         }
                         else {
                             usage();
