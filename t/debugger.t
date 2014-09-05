@@ -63,9 +63,12 @@ lives_ok { test_parse(Sample, 'baz') },
     my @calls = ();
     my $unsubscribe = Sample.HOW.subscribe('breakpoint', -> |args { @calls.push(args); });
 
-    diag test_parse(Sample, 'bar').join("\n");    # regex bar marked 'is breakpoint';
+    test_parse(Sample, 'bar').join("\n");    # regex bar marked 'is breakpoint';
 
-    is @calls.elems, 1, 'called back at "is breakpoint"-regex';
+    is @calls.elems, 1, 'called back once';
+    is @calls[0][1], 'bar', 'called back at "is breakpoint"-regex';
+    ok @calls[0][0] ~~ 'EnterRule', "called back before entering the regex";
+    #diag @calls.perl;
 
     $unsubscribe();
     @calls = ();
