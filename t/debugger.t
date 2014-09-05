@@ -24,20 +24,20 @@ grammar Sample {
 }
 
 
-sub test-parse($grammar, $s) { # capture output and remote-control Debugger
+sub test_parse($grammar, $s) { # capture output and remote-control Debugger
     my @calls = ();
     my $*OUT = class { method say(*@x) {
-        @calls.push('say: (' ~ @x.map(*.perl).join(', ') ~ ')');
+        @calls.push('  say(' ~ @x.map(*.perl).join(', ') ~ ');');
     }; method print(*@x) {
-        @calls.push('print: (' ~ @x.map(-> $s { colorstrip($s).perl }).join(', ') ~ ')');
+        @calls.push('print(' ~ @x.map(-> $s { colorstrip($s).perl }).join(', ') ~ ');');
     }; method flush(*@x) {
-        @calls.push('flush: (' ~ @x.map(*.perl).join(', ') ~ ')');
+        @calls.push('flush(' ~ @x.map(*.perl).join(', ') ~ ')');
     } };
     my $*IN  = class {
         method get(*@x) {
             my $out = "r";
-            @calls.push('get: (' ~ @x.map(*.perl).join(', ') ~ ') ~> ' ~ $out.perl);
-            #print ($out, "\n");
+            @calls.push('  get(' ~ @x.map(*.perl).join(', ') ~ '); # ~> ' ~ $out.perl);
+            print ($out ~ "\n");
 
             return $out;
         }
@@ -47,7 +47,7 @@ sub test-parse($grammar, $s) { # capture output and remote-control Debugger
 }
 
 
-lives_ok { test-parse(Sample, 'baz') },
+lives_ok { test_parse(Sample, 'baz') },
     'grammar.parse(...) with the debugger works';
 
 
@@ -63,13 +63,13 @@ lives_ok { test-parse(Sample, 'baz') },
     my @calls = ();
     my $unsubscribe = Sample.HOW.subscribe('breakpoint', -> |args { @calls.push(args); });
 
-    test-parse(Sample, 'bar');    # regex bar marked 'is breakpoint';
+    diag test_parse(Sample, 'bar').join("\n");    # regex bar marked 'is breakpoint';
 
     is @calls.elems, 1, 'called back at "is breakpoint"-regex';
 
     $unsubscribe();
     @calls = ();
-    test-parse(Sample, 'bar');
+    test_parse(Sample, 'bar');
     is @calls.elems, 0, 'not called back after unsubscribe';
 }
 

@@ -27,6 +27,12 @@ role EventEmitter {
             %.subscribers{$event} = @removed;
         };
     }
+
+    method fireEvent($event, |args) {
+        for @(%.subscribers{$event}) -> &callback {
+            &callback(|args);
+        }
+    }
 }
 
 my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
@@ -97,6 +103,7 @@ my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
             $point == ExitRule && $name eq any($!state{'cond-breakpoints'}.keys)
                 && $!state{'cond-breakpoints'}{$name}.ACCEPTS($match);
         if $stop {
+            self.fireEvent('breakpoint', $point, $name, $match);
             my $done;
             repeat {
                 my @parts = split /\s+/, prompt("> ");
