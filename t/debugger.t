@@ -47,11 +47,11 @@ sub test_parse($grammar, $s, :$diag = False, :@answers = ()) { # capture output 
 
 {
     my @io-lines;
-    lives_ok { @io-lines = test_parse(Sample, 'baz', :diag) },
+    lives_ok { @io-lines = test_parse(Sample, 'baz') },
         'grammar.parse(...) with the debugger works';
     is @io-lines.grep(/'get()'/).elems, 2, "stopped after TOP and at breakpoint";
     
-    @io-lines = test_parse(Sample, 'baz', :diag);
+    @io-lines = test_parse(Sample, 'baz');
     is @io-lines.grep(/'get()'/).elems, 2, "auto-continue is reset to False on 2nd parse";
 }
 

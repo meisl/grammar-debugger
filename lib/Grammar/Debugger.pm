@@ -108,15 +108,17 @@ my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
     
     method intervene(InterventionPoint $point, $name, :$match) {
         # Any reason to stop?
-        my $stop = 
-            !$!state{'auto-continue'} ||
+        my $breakpoint-hit = 
             $point == EnterRule && $name eq $!state{'stop-at-name'} ||
             $point == ExitRule && !$match && $!state{'stop-at-fail'} ||
             $point == EnterRule && $name eq any($!state{'breakpoints'}) ||
             $point == ExitRule && $name eq any($!state{'cond-breakpoints'}.keys)
                 && $!state{'cond-breakpoints'}{$name}.ACCEPTS($match);
-        if $stop {
+        if $breakpoint-hit {
             self.fireEvent('breakpoint', $point, $name, $match);
+        }
+        my $stop = !$!state{'auto-continue'} || $breakpoint-hit;
+        if $stop {
             my $done;
             repeat {
                 my @parts = split /\s+/, prompt("> ");
