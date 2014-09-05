@@ -69,7 +69,7 @@ my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
 
     method find_method($obj, $name) {
         my $meth := callsame;
-        if $name eq 'parse' {
+        if $name eq any('parse', 'subparse') {
             if $meth !~~ Wrapped {
                 $meth.wrap(-> |args {
                     $!state{'auto-continue'} = False;

@@ -18,7 +18,7 @@ grammar Sample {
 }
 
 
-sub test_parse($grammar, $s, :$diag = False, :@answers = ()) { # capture output and remote-control Debugger
+sub remote-control(&block, :$diag = False, :@answers = ()) { # capture output and remote-control Debugger
     my @calls = ();
     {
         my $*OUT = class { method say(*@x) {
@@ -37,7 +37,7 @@ sub test_parse($grammar, $s, :$diag = False, :@answers = ()) { # capture output 
                 return $out;
             }
         };
-        $grammar.parse($s);
+        &block();
     }
     if $diag {
         diag @calls.join("\n");
@@ -47,12 +47,19 @@ sub test_parse($grammar, $s, :$diag = False, :@answers = ()) { # capture output 
 
 {
     my @io-lines;
-    lives_ok { @io-lines = test_parse(Sample, 'baz') },
+    lives_ok { @io-lines = remote-control( { Sample.parse('baz') }, :diag(False) ); },
         'grammar.parse(...) with the debugger works';
     is @io-lines.grep(/'get()'/).elems, 2, "stopped after TOP and at breakpoint";
     
-    @io-lines = test_parse(Sample, 'baz');
-    is @io-lines.grep(/'get()'/).elems, 2, "auto-continue is reset to False on 2nd parse";
+    @io-lines = remote-control( { Sample.parse('baz') } );
+    is @io-lines.grep(/'get()'/).elems, 2, "auto-continue is reset to False on subsequent parse";
+    
+    my $file = IO::Path.new(IO::Path.new($?FILE).directory ~ '/some.txt');
+    @io-lines = remote-control( { Sample.parsefile($file) } );
+    is @io-lines.grep(/'get()'/).elems, 2, "auto-continue is reset to False on subsequent parsefile";
+    
+    @io-lines = remote-control( { Sample.subparse('baz') } );
+    is @io-lines.grep(/'get()'/).elems, 2, "auto-continue is reset to False on subsequent subparse";
 }
 
 
@@ -68,7 +75,7 @@ sub test_parse($grammar, $s, :$diag = False, :@answers = ()) { # capture output 
     my @calls = ();
     my $unsubscribe = Sample.HOW.subscribe('breakpoint', -> |args { @calls.push(args); });
 
-    test_parse(Sample, 'bar');    # regex bar marked 'is breakpoint';
+    remote-control( { Sample.parse('bar') } );    # regex bar marked 'is breakpoint';
 
     is @calls.elems, 1, 'called back once';
     is @calls[0][1], 'bar', 'called back at "is breakpoint"-regex';
@@ -76,11 +83,11 @@ sub test_parse($grammar, $s, :$diag = False, :@answers = ()) { # capture output 
     #diag @calls.perl;
 
     $unsubscribe();
-    test_parse(Sample, 'bar');
+    remote-control( { Sample.parse('bar') } );
     is @calls.elems, 1, 'not called back after unsubscribe';
 
     $unsubscribe = Sample.HOW.subscribe('breakpoint', -> |args { @calls.push(args); });
-    test_parse(Sample, 'bar');
+    remote-control( { Sample.parse('bar') } );
 
 }
 
