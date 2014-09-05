@@ -17,6 +17,7 @@ grammar Sample {
     method fizzbuzz {}
 }
 
+#Sample.parse('baz'); exit;
 
 sub remote-control(&block, :$diag = False, :@answers = ()) { # capture output and remote-control Debugger
     my @calls = ();
@@ -92,7 +93,7 @@ sub remote-control(&block, :$diag = False, :@answers = ()) { # capture output an
 }
 
 
-{
+{   # can add breakpoints via 'bp add'
     my @calls = ();
     my $unsubscribe = Sample.HOW.subscribe('breakpoint', -> |args { @calls.push(args); });
 
@@ -102,9 +103,38 @@ sub remote-control(&block, :$diag = False, :@answers = ()) { # capture output an
     );
 
     is @calls.elems, 3, 'called back at all breakpoints';
-    
+
+    @calls = ();
+    remote-control( { Sample.parse('baz') } );
+    is @calls.elems, 1, 'breakpoints are reset to declared ones only on subsequent parse';
+    #diag @calls.perl;
+    $unsubscribe();
+}
+
+{   # can remove breakpoints added via 'bp add'
+    my @calls = ();
+    my $unsubscribe = Sample.HOW.subscribe('breakpoint', -> |args { @calls.push(args); });
+
+    remote-control( { Sample.parse('baz') },    # regex baz NOT marked 'is breakpoint';
+        #:diag,
+        :answers(['bp add foo','bp add baz', 'bp rm baz', 'r']) # add breakpoints at foo and baz, then remove at baz
+    );
+
+    is @calls.elems, 2, 'called back at all enabled breakpoints';
 
     $unsubscribe();
+}
 
+{   # can remove breakpoints declared via 'is breakpoint'
+    my @calls = ();
+    my $unsubscribe = Sample.HOW.subscribe('breakpoint', -> |args { @calls.push(args); });
 
+    remote-control( { Sample.parse('baz') },    # regex baz NOT marked 'is breakpoint';
+        #:diag,
+        :answers(['bp rm bar', 'r']) # remove declared breakpoint at bar
+    );
+
+    is @calls.elems, 0, 'called back at all enabled breakpoints';
+
+    $unsubscribe();
 }

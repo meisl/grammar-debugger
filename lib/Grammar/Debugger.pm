@@ -6,14 +6,21 @@ use Term::ANSIColor;
 
 my enum InterventionPoint <EnterRule ExitRule>;
 
-multi trait_mod:<is>(Method $m, :$breakpoint!) is export {
-    $m does role { method breakpoint { True } }
+my role Breakpoint {
+    method breakpoint { True }
 }
+
+my role ConditionalBreakpoint {
+    has $.breakpoint-condition is rw;
+    method breakpoint { True }
+}
+
+multi trait_mod:<is>(Method $m, :$breakpoint!) is export {
+    $m does Breakpoint;
+}
+
 multi trait_mod:<will>(Method $m, $cond, :$break!) is export {
-    $m does role {
-        has $.breakpoint-condition is rw;
-        method breakpoint { True }
-    }
+    $m does ConditionalBreakpoint;
     $m.breakpoint-condition = $cond;
 }
 
@@ -43,25 +50,40 @@ my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
     # So we rather use the attribute $!state *the contents of which* we'll
     # modify instead.
     # Not as bad as it might look at first - maybe factor it out sometime.
-    has $!state = (
-        auto-continue   => False,
-        indent           => 0,
-        stop-at-fail     => False,
-        stop-at-name     => '',
-        breakpoints      => [],
-        cond-breakpoints => Hash.new(),
-    ).hash;
+    has $!state   = ().hash;
+    has @!regexes = ().list;
 
     method add_method(Mu \obj, $name, $code) {
         callsame;
-        if $code.?breakpoint {
-            if $code.?breakpoint-condition {
-                $!state{'cond-breakpoints'}{$code.name} = $code.breakpoint-condition;
-            }
-            else {
-                $!state{'breakpoints'}.push($code.name);
-           }
-       }
+        if $code ~~ Regex {
+            @!regexes.push($code);
+        }
+    }
+
+    method !set-state (
+        Bool  :$auto-continue    = False,
+        Int   :$indent           = 0,
+        Bool  :$stop-at-fail     = False,
+        Str   :$stop-at-name     = '',
+        Array :$breakpoints?,
+        Hash  :$cond-breakpoints?
+    ) {
+        $!state{'auto-continue'}    = $auto-continue;
+        $!state{'indent'}           = $indent;
+        $!state{'stop-at-fail'}     = $stop-at-fail;
+        $!state{'stop-at-name'}     = $stop-at-name;
+
+        $!state{'breakpoints'} = $breakpoints.defined 
+            ?? $breakpoints 
+            !! @!regexes.grep({ $_ ~~ Breakpoint}).map({ $_.name }).eager    # must evaluate - don't know why...?!
+        ;
+
+        $!state{'cond-breakpoints'} = $cond-breakpoints.defined
+            ?? $cond-breakpoints
+            !! @!regexes.grep({ $_ ~~ ConditionalBreakpoint }).map({ $_.name => $_.breakpoint-condition }).eager;
+
+        say ">>>set-state: " ~ $!state{'breakpoints'}.perl;
+        say ">>>set-state: " ~ $!state{'cond-breakpoints'}.perl;
     }
     
     # just a tag to see if method is already wrapped
@@ -72,7 +94,7 @@ my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
         if $name eq any('parse', 'subparse') {
             if $meth !~~ Wrapped {
                 $meth.wrap(-> |args {
-                    $!state{'auto-continue'} = False;
+                    self!set-state(); # initialize to default values
                     callsame;
                 });
                 $meth does Wrapped;
