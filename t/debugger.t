@@ -47,10 +47,10 @@ sub remote-control(&block, :$diag = False, :@answers = ()) { # capture output an
 {
     my @io-lines;
     # pass param :diag(True) or just :diag to remote-control to see what's been printed
-    lives_ok { @io-lines = remote-control( { Sample.parse('baz') }, :diag(False) ); },
+    lives_ok { @io-lines = remote-control( { Sample.parse('baz') }, :diag(True) ); },
         'grammar.parse(...) with the debugger works';
     is @io-lines.grep(/'get()'/).elems, 2, "stopped after TOP and at breakpoint";
-    
+    exit;
     @io-lines = remote-control( { Sample.parse('baz') } );
     is @io-lines.grep(/'get()'/).elems, 2, "auto-continue is reset to False on subsequent parse";
     

@@ -43,6 +43,9 @@ role EventEmitter {
 }
 
 my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
+    
+    # just a tag to see if method is already wrapped
+    my role Wrapped {}
 
     # Workaround for Rakudo* 2014.03.01 on Win (and maybe somewhere else, too):
     # trying to change the attributes in &intervene ...
@@ -54,7 +57,8 @@ my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
     has @!regexes = ().list;
 
     method add_method(Mu \obj, $name, $code) {
-        callsame;
+        #callsame;
+        callwith(\obj, $name, $code);
         if $code ~~ Regex {
             @!regexes.push($code);
         }
@@ -102,13 +106,10 @@ my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
         #say $!state{'breakpoints'}.perl;
         #say $!state{'cond-breakpoints'}.perl;
     }
-    
-    # just a tag to see if method is already wrapped
-    my role Wrapped {}
 
     method find_method($obj, $name) {
         my $meth := callsame;
-        #say ">>>>find_method $name";
+        say ">>>>find_method $name";
         if $name eq any('parse', 'subparse') {
             if $meth !~~ Wrapped {
                 $meth.wrap(-> |args {
@@ -257,6 +258,23 @@ my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
     }
     
     method publish_method_cache($obj) {
+        my %other = ();
+        %other.push('parse'     => self.find_method($obj, 'parse'));
+        %other.push('subparse'  => self.find_method($obj, 'subparse'));
+        %other.push('parsefile' => self.find_method($obj, 'parsefile'));
+        %other.push(@!regexes.map({ $_.name => $_ }));
+        for %other.keys -> $k {
+            my $m := %other{$k};
+            $m.wrap(-> |args {
+                my $name := $m.name;
+                say '>>>>before ' ~ $name;
+                my \result = callsame;
+                #my \result = callwith(|args);
+                say '>>>>after ' ~ $name ~ ' ~> ' ~ result.perl;
+                result;
+            });
+        }
+        say '>>>>publish_method_cache ' ~ %other.perl;
         # Suppress this, so we always hit find_method.
     }
 }
