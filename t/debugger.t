@@ -37,7 +37,7 @@ sub test_parse($grammar, $s, :$diag = False, :@answers = ()) { # capture output 
                 return $out;
             }
         };
-        $grammar.subparse($s);
+        $grammar.parse($s);
     }
     if $diag {
         diag @calls.join("\n");

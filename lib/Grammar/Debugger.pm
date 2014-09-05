@@ -64,8 +64,21 @@ my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
        }
     }
     
+    # just a tag to see if method is already wrapped
+    my role Wrapped {}
+
     method find_method($obj, $name) {
         my $meth := callsame;
+        if $name eq 'parse' {
+            if $meth !~~ Wrapped {
+                $meth.wrap(-> |args {
+                    $!state{'auto-continue'} = False;
+                    callsame;
+                });
+                $meth does Wrapped;
+                say(">>>>find_method $name: " ~ $meth.perl);
+            }
+        }
         return $meth unless $meth ~~ Regex;
         return -> $c, |args {
             # Issue the rule's/token's/regex's name
