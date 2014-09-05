@@ -1,20 +1,78 @@
 use v6;
 
 use Test;
+use Term::ANSIColor;
 use Grammar::Debugger;
 
-plan 1;
+
+plan *;
 
 
 grammar Sample {
-    token TOP { <foo> }
-    token foo { x }
+    rule TOP { <foo> }
+    token foo { 
+        [
+        | x
+        | <bar>
+        | <baz>
+        ]
+    }
+    regex bar is breakpoint { bar }
+    regex baz { baz }
+
+    method fizzbuzz {}
 }
 
-lives_ok
-    {
-        my $*OUT = class { method say(*@x) { }; method print(*@x) { }; method flush(*@x) { } };
-        my $*IN  = class { method get(*@x) { '' } };
-        Sample.parse('x')
-    },
+
+sub test-parse($grammar, $s) { # capture output and remote-control Debugger
+    my @calls = ();
+    my $*OUT = class { method say(*@x) {
+        @calls.push('say: (' ~ @x.map(*.perl).join(', ') ~ ')');
+    }; method print(*@x) {
+        @calls.push('print: (' ~ @x.map(-> $s { colorstrip($s).perl }).join(', ') ~ ')');
+    }; method flush(*@x) {
+        @calls.push('flush: (' ~ @x.map(*.perl).join(', ') ~ ')');
+    } };
+    my $*IN  = class {
+        method get(*@x) {
+            my $out = "r";
+            @calls.push('get: (' ~ @x.map(*.perl).join(', ') ~ ') ~> ' ~ $out.perl);
+            #print ($out, "\n");
+
+            return $out;
+        }
+    };
+    $grammar.parse($s);
+    return @calls;
+}
+
+
+lives_ok { test-parse(Sample, 'baz') },
     'grammar.parse(...) with the debugger works';
+
+
+{
+    my $unsubscribe = Sample.HOW.subscribe('breakpoint', -> {});
+
+    isa_ok $unsubscribe, Code, '.HOW.subscribe returns Code';
+    lives_ok { $unsubscribe() }, 'can unsubscribe';
+    lives_ok { $unsubscribe() }, 'can unsubscribe again (is a no-op)';
+}
+
+{
+    my @calls = ();
+    my $unsubscribe = Sample.HOW.subscribe('breakpoint', -> |args { @calls.push(args); });
+
+    test-parse(Sample, 'bar');    # regex bar marked 'is breakpoint';
+
+    is @calls.elems, 1, 'called back at "is breakpoint"-regex';
+
+    $unsubscribe();
+    @calls = ();
+    test-parse(Sample, 'bar');
+    is @calls.elems, 0, 'not called back after unsubscribe';
+}
+
+
+#    diag 'calls (' ~ @calls.elems ~ '):';
+#    diag @calls.join("\n");

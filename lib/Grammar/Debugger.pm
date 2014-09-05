@@ -17,7 +17,19 @@ multi trait_mod:<will>(Method $m, $cond, :$break!) is export {
     $m.breakpoint-condition = $cond;
 }
 
-my class DebuggedGrammarHOW is Metamodel::GrammarHOW {
+role EventEmitter {
+    has %.subscribers = ().hash;    # evt => callback
+
+    method subscribe(Str $event, &callback) {
+        %.subscribers.push($event => &callback);
+        return -> {
+            my @removed = %.subscribers{$event}.grep({ $_ !=== &callback }).eager;
+            %.subscribers{$event} = @removed;
+        };
+    }
+}
+
+my class DebuggedGrammarHOW is Metamodel::GrammarHOW does EventEmitter {
 
     # Workaround for Rakudo* 2014.03.01 on Win (and maybe somewhere else, too):
     # trying to change the attributes in &intervene ...
@@ -30,11 +42,11 @@ my class DebuggedGrammarHOW is Metamodel::GrammarHOW {
         indent           => 0,
         stop-at-fail     => False,
         stop-at-name     => '',
-        breakpoints      => [],
+        breakpoints      => ().list,
         cond-breakpoints => ().hash,
     ).hash;
-    
-    method add_method(Mu $obj, $name, $code) {
+
+    method add_method(Mu \obj, $name, $code) {
         callsame;
         if $code.?breakpoint {
             if $code.?breakpoint-condition {
@@ -42,8 +54,8 @@ my class DebuggedGrammarHOW is Metamodel::GrammarHOW {
             }
             else {
                 $!state{'breakpoints'}.push($code.name);
-            }
-        }
+           }
+       }
     }
     
     method find_method($obj, $name) {
