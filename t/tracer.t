@@ -1,4 +1,5 @@
 use v6;
+module Grammar::Tracer::Test;
 
 use Test;
 use Grammar::Test::Helper;
@@ -9,13 +10,22 @@ plan 18;
 
 
 grammar Sample {
-    token TOP  { <foo> | <boom> }
+    token TOP  { <foo> | <bar> | <boom> }
     token foo  { x }
-    token boom {
-        { die "Boom!" }
-    }
+    token bar  { <baz> }
+    token baz  { baz }
+    token boom {  { die "Boom!" }  }
 }
 
+Sample.new.parse('baz');
+exit;
+
+my $out = RemoteControl.do({ Sample.new.parse('baz'); });
+say $out.lines();
+if $out.result.defined {
+    say "parse result: " ~ $out.result;
+}
+exit;
 
 { diag 'check output for very simple successful parse';
     for parseTasks(Sample, :text('x')) -> $t {
@@ -33,7 +43,8 @@ grammar Sample {
                     "|  foo\n",
                     "|  * MATCH \"x\"\n",
                     "* MATCH \"x\"\n",
-                ], $t.perl ~ " with the tracer gives correct output on STDOUT");
+                ], $t.perl ~ " with the tracer gives correct output on STDOUT")
+                || diag $out.lines; # dump fully, and it's better readable
         }
     }
 }
