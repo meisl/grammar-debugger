@@ -25,10 +25,19 @@ grammar SelfDescribing {
     }
     token method-call   { '.' <bare-symbol> ['(' <arguments> ')' ]? }
     rule  arguments     { [ <term> [',' <term>]* ]? }
-    rule  type-decl     { <type-kind> <type-name>? '{' <type-body> '}' }
-    token type-kind     { 'grammar' | 'rule' | 'token' | 'regex' }
-    token type-name     { <bare-symbol> }
-    rule  type-body     { <type-decl>* }
+    rule  type-decl     { <class-like> | <code-like> }
+    rule  class-like    { [ 'module' | 'class' | 'grammar' ] <bare-symbol>? <class-like-body> }
+    rule  code-like     { <production> | <regular-code> }
+    rule  production    { [ 'rule' | 'token' | 'regex' ]     <bare-symbol>? <production-body>  }
+    rule  regular-code  { [ 'sub' | 'method' | 'submethod' ] <bare-symbol>? <regular-code-body>  }
+    rule  class-like-body { '{' <TOP> '}' }
+    rule  regular-code-body { '{' <TOP> '}' }
+    rule  production-body   { '{' [ <regex-body> | <regular-code-body> ]* '}' }
+    rule  regex-body    { [ [ <rx-call> | <rx-lit> | <rx-anchor> ] <rx-quant>? ]+ }
+    token  rx-call      { '<' <bare-symbol> '>' }
+    token rx-lit        { '\\d' | '\\N' }
+    token rx-anchor     { '^^' | '^' | '$$' | '$' }
+    token rx-quant      { '?' | '*' | '+' }
 }
 
 say SelfDescribing.parse(q:to/ENDOFTEXT/);
@@ -37,7 +46,7 @@ use v6; # this is Perl6
 use Grammar::Debugger;
 
 grammar SelfDescribing {
-    rule  TOP           {  }
+    rule  TOP           { <comment> }
 }
 
 say SelfDescribing.parsefile($*FILE);
