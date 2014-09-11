@@ -3,18 +3,21 @@ use v6;
 use Term::ANSIColor;
 use Grammar::InterceptedGrammarHOW;
 
+my $color = True;   #   False;  #   
 
 my class TracedGrammarHOW is InterceptedGrammarHOW is export {
 
     method onRegexEnter(Str $name, Int $indent) {
-        say ('|  ' x $indent) ~ BOLD() ~ $name ~ RESET();
+        my $out = ('|  ' x $indent) ~ BOLD() ~ $name ~ RESET();
+        say $color ?? $out !! colorstrip($out);
     }
 
     method onRegexExit(Str $name, Int $indent, Match $match) {
-        say ('|  ' x $indent) ~ '* ' ~
+        my $out = ('|  ' x $indent) ~ '* ' ~
             ($match ??
                 colored('MATCH', 'white on_green') ~ self.summary($indent, $match) !!
                 colored('FAIL', 'white on_red'));
+        say $color ?? $out !! colorstrip($out);
     }
 
     method summary(Int $indent, Match $match) {
