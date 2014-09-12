@@ -14,16 +14,24 @@ grammar SelfDescribing {
     token term          { [ <symbol> | <literal> ] <indirection>? }
     token symbol        { <bare-symbol> | <sig-symbol> }
     token bare-symbol   { <ident> [ '-' <ident>? ]* }
-    token sig-symbol    { <sig-twig> <bare-symbol> }
-    token sig-twig      { ['$' | '@' | '%'] ['*' | '?']? }
+    token sig-symbol    {
+        [ '$/'
+        | '$!'
+        | '$_'
+        | '$' \d+
+        | '$'         ['*' | '?' | '!' | '.' ]? <bare-symbol>
+        | ['@' | '%'] ['*' | '?' | '!' | '.' ]? <bare-symbol>
+        ]
+    }
     token literal       { <number> | <q-str> }
     token number        { '-'? \d+ ['.' \d+]? }
 
     #-------------------- can parse itself up to here --------------------
 
-    token q-str         { [ \' <s=sq-str> \' | \" <s=dq-str> \" ]
-                          { say 'q-str = ' ~ make($/{'s'}.ast).perl; }
-                        }
+    token q-str {
+        [ \' <s=sq-str> \' | \" <s=dq-str> \" ]
+        { make $/{'s'}.ast; }
+    }
 
     token sq-str {
         [ (<-[\'\n\\]>+)
@@ -50,46 +58,60 @@ grammar SelfDescribing {
         ]
     }
     token method-call   { <bare-symbol> ['(' <arguments> ')' ]? }
+    token array-index   { <term> }
+    token hash-lookup   { <term> }
 
     rule  arguments     { [ <term> [',' <term>]* ]? }
     rule  type-decl     { <class-like> | <code-like> }
-    rule  class-like    { [ 'module' | 'class' | 'grammar' ] <bare-symbol>? '{ ' <TOP> '}' }
+    rule  class-like    { [ 'module' | 'class' | 'grammar' ] <bare-symbol>? '{' <TOP> '}' }
     rule  code-like     { <prod-decl> | <code-decl> }
-    rule  code-decl     { [ 'sub' | 'method' | 'submethod' ] <bare-symbol>? '{ ' <code> '}' }
-    rule  prod-decl     { [ 'rule' | 'token' | 'regex' ]     <bare-symbol>? '{ ' <rx> '}' }
-    rule  code          { <TOP> }
+    rule  code-decl     { [ 'sub' | 'method' | 'submethod' ] <bare-symbol>? '{' <code> '}' }
+    rule  prod-decl     { [ 'rule' | 'token' | 'regex' ]     <bare-symbol>? '{'  <rx>  '}' }
+    rule  code          { \s* <TOP> }
     
-    rule  rx            { <rx-term> [ '|' <rx-term> ]* }
+    rule  rx            { \s* <rx-term> [ '|' <rx-term> ]* }
     rule  rx-term       { <rx-factor>+ }
     rule  rx-factor     {
         [ <rx-lit>
         | <rx-anchor>
-        | <rx-angle-brkt>
-        | '[' <rx> ']'
-        | '(' <rx> ')'
-        | '{' <code> '}'
+        | <rx-braced>
         ]
         <rx-quant>?
     }
     token rx-lit        { '.'  |  '\\' [ <alpha> | <digit> | <[\'\"\\*$._]> ]  |  <q-str> }
     token rx-anchor     { '^^' | '^' | '$$' | '$' }
     token rx-quant      { '?' | '*' | '+' }
-    token rx-angle-brkt { 
-        '<'
+    
+    token rx-braced {
+        | '<' <rx-brcd-angle> '>'
+        | '[' <rx> ']'
+        | '(' <rx> ')'
+        | '{' <code> '}'
+    }
+    token rx-brcd-angle { 
         [ <bare-symbol> [ '=' <bare-symbol> ]*
         | '-'? '[' <rx-cclass> ']'
         ]
-        '>'
     }
     token rx-cclass  { [ <-[\]\\]>+ | \\ . ]* }
 
 }
 
 say SelfDescribing.parse(:rule<prod-decl>, Q:to/ENDOFHEREDOC/); # uppercase Q: NO interpolation!
-token comment       { { say 'foo'; } '#' { say 'bar'; } \N* $$ { say 'baz'; } }
+token q-str {
+    [ \' <s=sq-str> \' | \" <s=dq-str> \" ]
+    { make $/{'s'}; }
+    }
 ENDOFHEREDOC
 exit;
 
+say SelfDescribing.parse(:rule<prod-decl>, Q:to/ENDOFHEREDOC/); # uppercase Q: NO interpolation!
+token q-str {
+    [ \' <s=sq-str> \' | \" <s=dq-str> \" ]
+    { make $/{'s'}.ast; }
+}
+ENDOFHEREDOC
+exit;
 
 say SelfDescribing.parse(:rule<TOP>, Q:to/ENDOFHEREDOC/); # uppercase Q: NO interpolation!
 use v6; # this is Perl6
