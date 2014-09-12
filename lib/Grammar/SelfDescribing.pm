@@ -50,15 +50,15 @@ grammar SelfDescribing {
         ]
     }
     token method-call   { <bare-symbol> ['(' <arguments> ')' ]? }
+
     rule  arguments     { [ <term> [',' <term>]* ]? }
     rule  type-decl     { <class-like> | <code-like> }
-    rule  class-like    { [ 'module' | 'class' | 'grammar' ] <bare-symbol>? <class-like-body> }
-    rule  code-like     { <production> | <regular-code> }
-    rule  production    { [ 'rule' | 'token' | 'regex' ]     <bare-symbol>? <production-body>  }
-    rule  regular-code  { [ 'sub' | 'method' | 'submethod' ] <bare-symbol>? <regular-code-body>  }
-    rule  class-like-body { '{' <TOP> '}' }
-    rule  regular-code-body { '{' <TOP> '}' }
-    rule  production-body   { '{' [ <rx> | <regular-code-body> ]* '}' }
+    rule  class-like    { [ 'module' | 'class' | 'grammar' ] <bare-symbol>? '{ ' <TOP> '}' }
+    rule  code-like     { <prod-decl> | <code-decl> }
+    rule  code-decl     { [ 'sub' | 'method' | 'submethod' ] <bare-symbol>? '{ ' <code> '}' }
+    rule  prod-decl     { [ 'rule' | 'token' | 'regex' ]     <bare-symbol>? '{ ' <rx> '}' }
+    rule  code          { <TOP> }
+    
     rule  rx            { <rx-term> [ '|' <rx-term> ]* }
     rule  rx-term       { <rx-factor>+ }
     rule  rx-factor     {
@@ -67,6 +67,7 @@ grammar SelfDescribing {
         | <rx-angle-brkt>
         | '[' <rx> ']'
         | '(' <rx> ')'
+        | '{' <code> '}'
         ]
         <rx-quant>?
     }
@@ -83,6 +84,12 @@ grammar SelfDescribing {
     token rx-cclass  { [ <-[\]\\]>+ | \\ . ]* }
 
 }
+
+say SelfDescribing.parse(:rule<prod-decl>, Q:to/ENDOFHEREDOC/); # uppercase Q: NO interpolation!
+token comment       { { say 'foo'; } '#' { say 'bar'; } \N* $$ { say 'baz'; } }
+ENDOFHEREDOC
+exit;
+
 
 say SelfDescribing.parse(:rule<TOP>, Q:to/ENDOFHEREDOC/); # uppercase Q: NO interpolation!
 use v6; # this is Perl6
@@ -109,4 +116,4 @@ grammar SelfDescribing {
     #-------------------- can parse itself up to here --------------------
 }
 ENDOFHEREDOC
-
+exit;
