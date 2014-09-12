@@ -1,6 +1,8 @@
 use v6; # this is Perl6
 use Grammar::Tracer;
 
+# Note: *every statement needs to be ended with a semicolon ';'!
+
 grammar SelfDescribing {
     rule  TOP           { \s* [ <comment> | <type-decl> | <statement> ]* }
     token comment       { '#' \N* $$ }
@@ -14,6 +16,8 @@ grammar SelfDescribing {
     token term          { [ <symbol> | <literal> ] <indirection>? }
     token symbol        { <bare-symbol> | <sig-symbol> }
     token bare-symbol   { <ident> [ '-' <ident>? ]* }
+    token literal       { <number> | <q-str> }
+    token number        { '-'? \d+ ['.' \d+]? }
     token sig-symbol    {
         [ '$/'
         | '$!'
@@ -23,10 +27,6 @@ grammar SelfDescribing {
         | ['@' | '%'] ['*' | '?' | '!' | '.' ]? <bare-symbol>
         ]
     }
-    token literal       { <number> | <q-str> }
-    token number        { '-'? \d+ ['.' \d+]? }
-
-    #-------------------- can parse itself up to here --------------------
 
     token q-str {
         [ \' <s=sq-str> \' | \" <s=dq-str> \" ]
@@ -41,6 +41,8 @@ grammar SelfDescribing {
         { make $0.list.join; }
     }
 
+    #-------------------- can parse itself up to here --------------------
+
     my %dq-esc = (b => "\b", r => "\r", n => "\n", f => "\f", t => "\t");
 
     token dq-str {
@@ -51,11 +53,11 @@ grammar SelfDescribing {
         { make $0.map({$_.ast // $_}).list.join; }
     }
 
-    token indirection   {
+    token indirection {
         [ '.' <method-call>
         | '[' <array-index> ']'
         | '{' <hash-lookup> '}'
-        ]
+        ] <indirection>?
     }
     token method-call   { <bare-symbol> ['(' <arguments> ')' ]? }
     token array-index   { <term> }
@@ -97,25 +99,14 @@ grammar SelfDescribing {
 
 }
 
-say SelfDescribing.parse(:rule<prod-decl>, Q:to/ENDOFHEREDOC/); # uppercase Q: NO interpolation!
-token q-str {
-    [ \' <s=sq-str> \' | \" <s=dq-str> \" ]
-    { make $/{'s'}; }
-    }
-ENDOFHEREDOC
-exit;
 
-say SelfDescribing.parse(:rule<prod-decl>, Q:to/ENDOFHEREDOC/); # uppercase Q: NO interpolation!
-token q-str {
-    [ \' <s=sq-str> \' | \" <s=dq-str> \" ]
-    { make $/{'s'}.ast; }
-}
-ENDOFHEREDOC
-exit;
-
+# ----------------------------------------------------------------------------------------------------------------------------------------
 say SelfDescribing.parse(:rule<TOP>, Q:to/ENDOFHEREDOC/); # uppercase Q: NO interpolation!
+# ----------------------------------------------------------------------------------------------------------------------------------------
 use v6; # this is Perl6
-use Grammar::Tracer;
+#use Grammar::Tracer;
+
+# Note: *every statement needs to be ended with a semicolon ';'!
 
 grammar SelfDescribing {
     rule  TOP           { \s* [ <comment> | <type-decl> | <statement> ]* }
@@ -130,12 +121,55 @@ grammar SelfDescribing {
     token term          { [ <symbol> | <literal> ] <indirection>? }
     token symbol        { <bare-symbol> | <sig-symbol> }
     token bare-symbol   { <ident> [ '-' <ident>? ]* }
-    token sig-symbol    { <sig-twig> <bare-symbol> }
-    token sig-twig      { ['$' | '@' | '%'] ['*' | '?']? }
     token literal       { <number> | <q-str> }
     token number        { '-'? \d+ ['.' \d+]? }
+    token sig-symbol    {
+        [ '$/'
+        | '$!'
+        | '$_'
+        | '$' \d+
+        | '$'         ['*' | '?' | '!' | '.' ]? <bare-symbol>
+        | ['@' | '%'] ['*' | '?' | '!' | '.' ]? <bare-symbol>
+        ]
+    }
+
+    token q-str {
+        [ \' <s=sq-str> \' | \" <s=dq-str> \" ]
+        { make $/{'s'}.ast; }
+    }
+
+    token sq-str {
+        [ (<-[\'\n\\]>+)
+        | \\ (<[\'\\]>)
+        | (\\ <-[\'\n\\]>)
+        ]*
+        { make $0.list.join; }
+    }
 
     #-------------------- can parse itself up to here --------------------
+}
+say SelfDescribing.parse($?FILE);
+ENDOFHEREDOC
+exit;
+
+
+# ----------------------------------------------------------------------------------------------------------------------------------------
+say SelfDescribing.parse(:rule<prod-decl>, Q:to/ENDOFHEREDOC/); # uppercase Q: NO interpolation!
+# ----------------------------------------------------------------------------------------------------------------------------------------
+token q-str {
+    [ \' <s=sq-str> \' | \" <s=dq-str> \" ]
+    { make $/{'s'}.ast; }
+    }
+ENDOFHEREDOC
+exit;
+
+
+# ----------------------------------------------------------------------------------------------------------------------------------------
+say SelfDescribing.parse(:rule<prod-decl>, Q:to/ENDOFHEREDOC/); # uppercase Q: NO interpolation!
+# ----------------------------------------------------------------------------------------------------------------------------------------
+token q-str {
+    [ \' <s=sq-str> \' | \" <s=dq-str> \" ]
+    { make $/{'s'}.ast; }
 }
 ENDOFHEREDOC
 exit;
