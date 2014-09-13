@@ -1,5 +1,5 @@
 use v6; # this is Perl6
-#use Grammar::Tracer;
+use Grammar::Tracer;
 
 # Note: *every statement needs to be ended with a semicolon ';'!
 
@@ -14,7 +14,7 @@ grammar SelfDescribing {
     rule  exit-stmt     { 'exit' <term>? }
     token version       { 'v' \d+ ['.' \d+]? }
     token module-ident  { <identifier> ['::' <identifier>]* }
-    token term          { [ <symbol> | <literal> ] <.indirection>? }
+    token term          { [ <symbol> | <literal> ] <indirection>* }
     token literal       { <number> | <q-str> }
     token number        { \d+ ['.' \d+]? }
     token digits        { \d+ }
@@ -39,6 +39,16 @@ grammar SelfDescribing {
         { make $0.list.join; }
     }
 
+    token indirection {
+        [ '.' <method-call>
+        | '[' <array-index> ']'
+        | '{' <hash-lookup> '}'
+        ]# <indirection>?
+    }
+    token method-call   { <identifier> ['(' <arguments> ')' ]? }
+    token array-index   { <term> }
+    token hash-lookup   { <term> }
+
     #-------------------- can parse itself up to here --------------------
     
     # Let's make our own identifier token that accepts dashes "-" (but not
@@ -61,16 +71,6 @@ grammar SelfDescribing {
         ]*
         { make $0.map({$_.ast // $_}).list.join; }
     }
-
-    token indirection {
-        [ '.' <method-call>
-        | '[' <array-index> ']'
-        | '{' <hash-lookup> '}'
-        ] <indirection>?
-    }
-    token method-call   { <identifier> ['(' <arguments> ')' ]? }
-    token array-index   { <term> }
-    token hash-lookup   { <term> }
 
     rule  arguments     { [ <term> [',' <term>]* ]? }
     rule  type-decl     { <class-like> | <code-like> }
@@ -115,51 +115,7 @@ grammar SelfDescribing {
 
 # ----------------------------------------------------------------------------------------------------------------------------------------
 say SelfDescribing.parse(:rule<TOP>, Q:to/ENDOFHEREDOC/); # uppercase Q: NO interpolation!
-use v6; # this is Perl6
-use Grammar::Tracer;
-
-# Note: *every statement needs to be ended with a semicolon ';'!
-
-grammar SelfDescribing {
-    rule  TOP           { \s* [ <comment> | <type-decl> | <stmt-list> ]* }
-    token comment       { '#' \N* $$ }
-    rule  stmt-list     { <stmt> [ ';' <stmt> ]* ';' }
-    rule  stmt          { [ <use-stmt> | <say-stmt> | <make-stmt>| <exit-stmt> | <term> ] }
-    rule  use-stmt      { 'use' [ <version> | <module-ident> ] }
-    rule  say-stmt      { 'say'  <term>? }
-    rule  make-stmt     { 'make' <term>? }
-    rule  exit-stmt     { 'exit' <term>? }
-    token version       { 'v' \d+ ['.' \d+]? }
-    token module-ident  { <identifier> ['::' <identifier>]* }
-    token term          { [ <symbol> | <literal> ] <indirection>? }
-    token literal       { <number> | <q-str> }
-    token number        { \d+ ['.' \d+]? }
-    token digits        { \d+ }
-    token symbol        { <identifier> | <sig-sym> }
-
-    #-------------------- can parse itself up to here --------------------
-
-    regex sig-sym {
-        [ (<star=[*]>    )
-        | (<sigil=[$&@%]>) (<twigil=[*?!.^:]>?) (<identifier> | <special=[_!/]> | <capture=digits>)
-        ]
-    }
-
-    token q-str {
-        [ \' <s=sq-str> \' | \" <s=dq-str> \" ]
-        { make $/{'s'}.ast; }
-    }
-
-    token sq-str {
-        [ (<-[\'\n\\]>+)
-        | \\ (<[\'\\]>)
-        | (\\ <-[\'\n\\]>)
-        ]*
-        { make $0.list.join; }
-    }
-
-}
-say SelfDescribing.parse($?FILE);
+SelfDescribing.parse($?FILE).Str;
 ENDOFHEREDOC
 exit;
 
