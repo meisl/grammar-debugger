@@ -1,10 +1,10 @@
 use v6;
 
 use Term::ANSIColor;
-use Grammar::InterceptedGrammarHOW;
+use Grammar::Hooks;
 
 
-my class TracedGrammarHOW is InterceptedGrammarHOW is export {
+my class TracedGrammarHOW is HookedGrammarHOW is export {
 
     method onRegexEnter(Str $name, Int $indent) {
         say ('|  ' x $indent) ~ BOLD() ~ $name ~ RESET();
@@ -29,4 +29,4 @@ my class TracedGrammarHOW is InterceptedGrammarHOW is export {
 
 # Export this as the meta-class for the "grammar" package declarator.
 my module EXPORTHOW { }
-EXPORTHOW::<grammar> = TracedGrammarHOW;
+EXPORTHOW::<grammar> = TracedGrammarHOW;   # ~> "use Grammar::Tracer"

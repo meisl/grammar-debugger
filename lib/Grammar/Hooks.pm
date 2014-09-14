@@ -1,7 +1,7 @@
 use v6;
 
 
-class InterceptedGrammarHOW is Metamodel::GrammarHOW {
+class HookedGrammarHOW is Metamodel::GrammarHOW {
 
     # TODO: associate state to the right thing, sometime...
     has $!state = (().hash does role {
@@ -89,3 +89,6 @@ class InterceptedGrammarHOW is Metamodel::GrammarHOW {
 
 }
 
+# Export this as the meta-class for the "grammar" package declarator.
+my module EXPORTHOW { }
+EXPORTHOW::<grammar> = HookedGrammarHOW;   # ~> "use Grammar::Hooks"

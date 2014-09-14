@@ -162,4 +162,4 @@ my class DebuggedGrammarHOW is TracedGrammarHOW {
 
 # Export this as the meta-class for the "grammar" package declarator.
 my module EXPORTHOW { }
-EXPORTHOW::<grammar> = DebuggedGrammarHOW;
+EXPORTHOW::<grammar> = DebuggedGrammarHOW;   # ~> "use Grammar::Debugger"
