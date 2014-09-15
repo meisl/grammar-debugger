@@ -1,60 +1,12 @@
 use v6;
 
+use Grammar::Example::RegexTiny;
+
 # NOTE: we DON'T "use Grammar::Tracer" *here*
 #       nor "use Grammar::Debugger"
 #       nor "use Grammar::Hooks"
 # but rather pick 'em in their own lexical scopes below
 
-
-
-# --------------------------------------------------------------------------------------
-# Let's set up something to do:
-
-grammar Sample {
-    rule TOP            { ^ <rx_decl>* $ }
-
-    rule  rx_decl       { [ 'rule' | 'token' | 'regex' ] <ident> '{' <rx> '}' }
-    rule  rx            { \s* <rx_term> [ '|' <rx_term> ]* }
-    rule  rx_term       { <rx_factor>+ }
-    rule  rx_factor     {
-        [ <rx_lit>
-        | <rx_anchor>
-        | <rx_braced>
-        ]
-        <rx_quant>?
-    }
-    token rx_lit        { '.'  |  '\\' [ <alpha> | <digit> | <[\'\"\\*$._]> ]  |  \' <sq_str> \' }
-    token rx_anchor     { '^^' | '^' | '$$' | '$' }
-    token rx_quant      { '?' | '*' | '+' }
-    
-    token rx_braced {
-        | '<' <rx_brcd_angle> '>'
-        | '[' <rx> ']'
-    }
-    token rx_brcd_angle {
-        [ <ident> [ '=' <ident> ]* [ '=' <rx_cclass> ]?
-#        | <rx_cclass>
-        ]
-    }
-    token rx_cclass  { <[+-]>?  '['  [ <-[\]\\]>+ | \\ . ]*  ']' }
-
-    token sq_str {
-        [ (<-[\'\n\\]>+)
-        | \\ (<[\'\\]>)
-        | (\\ <-[\'\n\\]>)
-        ]*
-    }
-
-}
-
-
-# --------------------------------------------------------------------------------------
-# This is what we're going to parse:
-
-my $rxStr = Q:to/ENDOFHEREDOC/; # uppercase Q: NO interpolation!
-    rule  rx_decl       { [ 'rule' | 'token' | 'regex' ] <ident> '{' <rx> '}' }
-    rule  rx            { \s* <rx_term> [ '|' <rx_term> ]* }
-ENDOFHEREDOC
 
 
 my $t_ref;
@@ -71,15 +23,18 @@ sub test(Grammar $G, Int :$repeat = 2, Bool :$reference-time = False) {
     }
     printf('# %-120s: ', $d);
     $*OUT.flush();
-    my $t;
+    my $t = 0;
     {
         my $*OUT = class { method print(|x) {}; method flush(|x) {} };
         #my $*ERR = class { method print(|x) {}; method flush(|x) {} };
-        $t = nqp::p6box_n(nqp::time_n);
+
+        my $s = $G.tiny-input();
         for 1..$repeat {
-            $G.parse($rxStr);
+            $t -= nqp::p6box_n(nqp::time_n);
+            $G.parse($s);
+            $t += nqp::p6box_n(nqp::time_n);;
         }
-        $t = (nqp::p6box_n(nqp::time_n) - $t) / $repeat;
+        $t = $t / $repeat;
     }
     my $f = 1;
     my $which = '';
@@ -107,13 +62,13 @@ if ($t_ref.defined) {
     say '#                                        with "Grammar::Hooks":    17.969 sec       1.00 x         (avg of  1 runs)';
 } else {
   use Grammar::Hooks_00;
-  my grammar G is Sample {}
+  my grammar G is RegexTiny {}
   test(G, :reference-time, :repeat(1));
 }
 
 
 {
-  my grammar G is Sample {
+  my grammar G is RegexTiny {
     method describe() { 'without any "use Grammar::*"' }
   }
   test(G, :repeat(15));
@@ -122,22 +77,22 @@ if ($t_ref.defined) {
 
 {
   use Grammar::Hooks_02;
-  my grammar G is Sample {}
-  test(G, :repeat(5));
+  my grammar G is RegexTiny {}
+  test(G, :repeat(2));
 }
 
 
 {
   use Grammar::Hooks_01;
-  my grammar G is Sample {}
-  test(G, :repeat(5));
+  my grammar G is RegexTiny {}
+  test(G, :repeat(2));
 }
 
 
 {
   use Grammar::Tracer_00_h00;
-  my grammar G is Sample {}
-  test(G, :repeat(3));
+  my grammar G is RegexTiny {}
+  test(G, :repeat(1));
 }
 
 
@@ -203,4 +158,16 @@ e:\proj\perl6\Grammar-Debugger>perl6 -Ilib benchmark\benchmark.pl
 # without any "use Grammar::*"                                                                                            :     0.020 sec    1140.05 x faster  (avg of 15 runs)
 # Grammar::Hooks_02 - find_method (newly) wraps Regexes but &parse and &subparse are wrapped in publish_method_cache      :     0.319 sec      70.85 x faster  (avg of  5 runs)
 # Grammar::Hooks_01 - find_method (newly) wraps Regexes but NOT &parse and &subparse                                      :     0.297 sec      76.00 x faster  (avg of  5 runs)
+
+
+---------- run perl6 ----------
+## 2014-09-15T19:41:47+0200 / rakudo 2014.03.01 on parrot / MSWin32
+# Grammar::Hooks_00 - find_method (newly) wraps Regexes plus &parse and &subparse                                         :    25.031 sec       1.00 x         (avg of  1 runs)
+# without any "use Grammar::*"                                                                                            :     0.020 sec    1264.20 x faster  (avg of 15 runs)
+# Grammar::Hooks_02 - find_method (newly) wraps Regexes but &parse and &subparse are wrapped in publish_method_cache      :     0.319 sec      78.52 x faster  (avg of  5 runs)
+# Grammar::Hooks_01 - find_method (newly) wraps Regexes but &parse and &subparse NOT wrapped (incorrect!)                 :     0.287 sec      87.09 x faster  (avg of  5 runs)
+# Grammar::Tracer_00_h00 - is Hooks_00 / "use Term::ANSICOLOR"                                                            :    74.953 sec       2.99 x slower  (avg of  3 runs)
+
+Output completed (4 min 21 sec consumed) - Normal Termination
+
 ENDOFHEREDOC
