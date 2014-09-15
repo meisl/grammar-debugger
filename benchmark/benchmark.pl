@@ -34,15 +34,15 @@ sub test(Grammar $G where {$_ ~~ Benchmarking}, Int :$repeat = 2, Bool :$referen
         $t = $t / $repeat;
     }
     my $f = 1;
-    my $which = '(ref) ';
+    my $which = 'reference';
     if ($reference-time) {
         $t_ref = $t;
     } elsif $t > $t_ref {
         $f = $t / $t_ref;
-        $which = 'slower';
+        $which = 'slower :(';
     } else {
         $f = $t_ref / $t;
-        $which = 'FASTER';
+        $which = 'FASTER :D';
     }
     say sprintf(" %8.3f sec  %9.2f x %6s  (avg'd %2d runs)", $t, $f, $which, $repeat);
 }
