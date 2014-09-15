@@ -42,7 +42,7 @@ sub test(Grammar $G where {$_ ~~ Benchmarking}, Int :$repeat = 2, Bool :$referen
         $which = 'slower';
     } else {
         $f = $t_ref / $t;
-        $which = 'faster';
+        $which = 'FASTER';
     }
     say sprintf(" %8.3f sec  %9.2f x %6s  (avg'd %2d runs)", $t, $f, $which, $repeat);
 }
@@ -83,6 +83,21 @@ if ($t_ref.defined) {
 }
 
 { use Grammar::Tracer_00_h00;
+  my grammar G is RegexSimple {}
+  test(G, :repeat(1));
+}
+
+{ use Grammar::Tracer_01_standalone;
+  my grammar G is RegexSimple {}
+  test(G, :repeat(1));
+}
+
+{ use Grammar::Tracer_01_h00;
+  my grammar G is RegexSimple {}
+  test(G, :repeat(1));
+}
+
+{ use Grammar::Tracer_01_h01;
   my grammar G is RegexSimple {}
   test(G, :repeat(1));
 }

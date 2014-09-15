@@ -7,8 +7,8 @@ use Term::ANSIColor;
 my class Tracer_00_standalone is Metamodel::GrammarHOW {
 
     method describe($obj) {
-        'with `use Term::ANSICOLOR` and like `Hooks_01` but does all on itself'
-            ~ ' (ie, as it was: directly inherits `Metamodel::GrammarHOW`, no `onRegexEnter`... )';
+        'as it was: with `use Term::ANSICOLOR` and *like* `Hooks_01` but does all on itself'
+            ~ ' (directly inherits `Metamodel::GrammarHOW`, no `onRegexEnter`... )';
     }
 
     my $indent = 0;
