@@ -7,7 +7,7 @@ use Grammar::Hooks_00;
 my class Tracer_00_h00 is Hooks_00 is export {
 
     method describe($obj) {
-        'Grammar::Tracer_00_h00 - is Hooks_00 / "use Term::ANSICOLOR"';
+        '`is Hooks_00` / `use Term::ANSICOLOR`';
     }
 
     method onRegexEnter(Str $name, Int $indent) {

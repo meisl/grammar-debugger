@@ -21,9 +21,28 @@ role Benchmarking {
     method medium-input { !!! }
     method large-input  { !!! }
     method huge-input   { !!! }
+
+    method describe {
+        'without any `use Grammar::*`'
+    }
+
+    method gist {
+        my $metaName = self.HOW.HOW.name(self.HOW);
+        if $metaName eq 'Perl6::Metamodel::GrammarHOW' {
+            my $out = 'bare ' ~ self.HOW.name(self);
+            for self.^mro[1..*].map({ $_.HOW.name($_)}) -> $p {
+                $out ~= ' isa ' ~ $p;
+                last if $p eq 'Grammar';
+            }
+            return $out;
+        } else {
+            return $metaName;
+            }
+    }
+
 }
 
-grammar RegexTiny does Benchmarking {
+grammar RegexSimple does Benchmarking {
     rule TOP            { ^ <rx_decl>* $ }
     rule  rx_decl       { [ 'rule' | 'token' | 'regex' ] <ident> '{' <rx> '}' }
     rule  rx            { \s* <rx_term> [ '|' <rx_term> ]* }

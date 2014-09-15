@@ -58,7 +58,7 @@ class Hooks_02 is Metamodel::GrammarHOW {
     }
 
     method describe($obj) {
-        'Grammar::Hooks_02 - find_method (newly) wraps Regexes but &parse and &subparse are wrapped in publish_method_cache'
+        '`find_method` wraps Regexes but `&(sub)parse` wrapped in `publish_method_cache`'
     }
 
     method publish_method_cache($obj) {
