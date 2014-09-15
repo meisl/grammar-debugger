@@ -1,7 +1,7 @@
 use v6;
 
 
-class HookedGrammarHOW is Metamodel::GrammarHOW {
+class Hooks_02 is Metamodel::GrammarHOW {
 
     # TODO: associate state to the right thing, sometime...
     has $!state = (().hash does role {
@@ -47,35 +47,6 @@ class HookedGrammarHOW is Metamodel::GrammarHOW {
 
     method find_method($obj, $name) {
         my $meth := callsame;
-
-        # TODO: parsefile actually calls parse in the current implementation
-        # - but that may change.
-        # So here again we have kind of a "magic" list of method names for
-        # intercepting the *start of a new parse*.
-        # This should be abstracted somehow.
-        if $name eq any(<parse subparse>) {
-            
-            # role Wrapped: nothing but a tag st *we* (here) wrap only once.
-            # Note that there's more to code wrapping than one might
-            # think (see Routine.pm).
-            # They use a role named Wrapped there, too. 
-            # And it's NOT public, FOR A REASON!
-            # Hence we cannot use it here - it would be
-            # incorrect anyways as someone else could have
-            # wrapped it before (in which case we still need
-            # to wrap our own stuff around).
-            my role Wrapped {};
-
-            if !$meth.does(Wrapped) {
-                $meth.wrap(-> |args {
-                    self!resetState;
-                    callsame;
-                });
-                $meth does Wrapped;
-            }
-            #note ">>>>>>>>>>>>> find_method(" ~ self.name($obj) ~ ", $name) ~> " ~ ($meth ~~ Any ?? $meth.perl !! '???');
-        }
-
         return $meth unless $meth ~~ Regex;
 
         return -> |args {
@@ -86,7 +57,37 @@ class HookedGrammarHOW is Metamodel::GrammarHOW {
         };
     }
 
+    method describe($obj) {
+        'Grammar::Hooks_02 - find_method (newly) wraps Regexes but &parse and &subparse are wrapped in publish_method_cache'
+    }
+
     method publish_method_cache($obj) {
+        #note '>>>publish_method_cache(' ~ $obj.^name ~ ')';
+        self.add_method($obj, "describe", -> |args { self.describe(|args); });
+
+        # role Wrapped: nothing but a tag st *we* (here) wrap only once.
+        # Note that there's more to code wrapping than one might
+        # think (see Routine.pm).
+        # They use a role named Wrapped there, too. 
+        # And it's NOT public, FOR A REASON!
+        # Hence we cannot use it here - it would be
+        # incorrect anyways as someone else could have
+        # wrapped it before (in which case we still need
+        # to wrap our own stuff around).
+        my role Wrapped {};
+
+        for <parse subparse> -> $name {
+            my $meth := self.find_method($obj, $name);
+            if !$meth.does(Wrapped) {
+                $meth.wrap(-> |args {
+                    self!resetState;
+                    callsame;
+                });
+                $meth does Wrapped;
+            }
+            #note ">>>>>>>> publish_method_cache: " ~ self.name($obj) ~ ".$name ~> " ~ ($meth ~~ Any ?? $meth.perl !! '???');
+        }
+
         # Suppress this, so we always hit find_method.
     }
 
@@ -94,4 +95,4 @@ class HookedGrammarHOW is Metamodel::GrammarHOW {
 
 # Export this as the meta-class for the "grammar" package declarator.
 my module EXPORTHOW { }
-EXPORTHOW::<grammar> = HookedGrammarHOW;   # ~> "use Grammar::Hooks"
+EXPORTHOW::<grammar> = Hooks_02;   # ~> "use Grammar::Hooks_02"

@@ -1,7 +1,7 @@
 use v6;
 
 
-class HookedGrammarHOW is Metamodel::GrammarHOW {
+class Hooks_00 is Metamodel::GrammarHOW {
 
     # TODO: associate state to the right thing, sometime...
     has $!state = (().hash does role {
@@ -86,7 +86,13 @@ class HookedGrammarHOW is Metamodel::GrammarHOW {
         };
     }
 
+    method describe($obj) {
+        'Grammar::Hooks_00 - find_method (newly) wraps Regexes plus &parse and &subparse';
+    }
+
     method publish_method_cache($obj) {
+        self.add_method($obj, "describe", -> |args { self.describe(|args); });
+        #note '>>>publish_method_cache(' ~ $obj.^name ~ ')';
         # Suppress this, so we always hit find_method.
     }
 
@@ -94,4 +100,4 @@ class HookedGrammarHOW is Metamodel::GrammarHOW {
 
 # Export this as the meta-class for the "grammar" package declarator.
 my module EXPORTHOW { }
-EXPORTHOW::<grammar> = HookedGrammarHOW;   # ~> "use Grammar::Hooks"
+EXPORTHOW::<grammar> = Hooks_00;
