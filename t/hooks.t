@@ -6,7 +6,7 @@ use Grammar::Test::Helper;
 
 plan *;
 
-{ diag 'can use Grammar::Hooks restricted to lexical scope';
+{ diag 'can "use Grammar::Hooks" restricted to lexical scope';
     use Grammar::Hooks;
     my grammar G {
         rule  TOP { <foo> }
