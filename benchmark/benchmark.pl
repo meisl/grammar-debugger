@@ -68,14 +68,26 @@ if ($t_ref.defined) {
 
 { use Grammar::Hooks_01;
   my grammar G is RegexSimple {}
-  test(G, :repeat(2));
+  test(G, :repeat(5));
 }
+
 { use Grammar::Hooks_02;
   my grammar G is RegexSimple {}
-  test(G, :repeat(2));
+  test(G, :repeat(5));
+}
+
+{ use Grammar::Hooks_03;
+  my grammar G is RegexSimple {}
+  test(G, :repeat(10));
 }
 
 # --- Tracer variants ---------------------------------------------------------
+
+
+#{ use Grammar::Tracer_01_h03;
+#  my grammar G is RegexSimple {}
+#  test(G, :repeat(5));
+#}
 
 { use Grammar::Tracer_00_standalone;
   my grammar G is RegexSimple {}
@@ -113,6 +125,11 @@ if ($t_ref.defined) {
 }
 
 { use Grammar::Tracer_01_h02;
+  my grammar G is RegexSimple {}
+  test(G, :repeat(1));
+}
+
+{ use Grammar::Tracer_01_h03;
   my grammar G is RegexSimple {}
   test(G, :repeat(1));
 }
@@ -238,6 +255,45 @@ Output completed (1 min 7 sec consumed) - Normal Termination
 # Tracer_01_h00:                         66.235 sec       1.76 x slower :(  (avg'd  1 runs)
 # Tracer_01_h01:                          1.266 sec      29.76 x FASTER :D  (avg'd  1 runs)
 # Tracer_01_h02:                          1.453 sec      25.93 x FASTER :D  (avg'd  1 runs)
+
+
+##### 2014-09-17T00:13:11+0200 / rakudo 2014.03.01 on parrot / MSWin32
+```
+# Hooks_00:                              36.453 sec       1.00 x reference  (avg'd  1 runs)
+# bare RegexSimple isa Grammar:           0.046 sec     794.76 x FASTER :D  (avg'd 15 runs)
+# Hooks_01:                               0.644 sec      56.62 x FASTER :D  (avg'd  5 runs)
+# Hooks_02:                               0.647 sec      56.36 x FASTER :D  (avg'd  5 runs)
+# Hooks_03:                               0.125 sec     291.62 x FASTER :D  (avg'd 10 runs)
+# Tracer_00_standalone:                  90.671 sec       2.49 x slower :(  (avg'd  1 runs)
+# Tracer_00_h00:                        105.078 sec       2.88 x slower :(  (avg'd  1 runs)
+# Tracer_00_h01:                        100.422 sec       2.75 x slower :(  (avg'd  1 runs)
+# Tracer_00_h02:                        105.891 sec       2.90 x slower :(  (avg'd  1 runs)
+# Tracer_01_standalone:                   1.750 sec      20.83 x FASTER :D  (avg'd  1 runs)
+# Tracer_01_h00:                         78.000 sec       2.14 x slower :(  (avg'd  1 runs)
+# Tracer_01_h01:                          2.281 sec      15.98 x FASTER :D  (avg'd  1 runs)
+# Tracer_01_h02:                          1.781 sec      20.47 x FASTER :D  (avg'd  1 runs)
+# Tracer_01_h03:                          1.047 sec      34.82 x FASTER :D  (avg'd  1 runs)
+
+```
+----
+###### Legend:
+  * Tasks
+    * **Rx**: `Grammar::Example::RegexSimple`: basic regex declarations, eg `rule TOP { ^ <foo>* $ }`; able to parse its own body (!)
+  * Exercises
+    * **Hooks_00:** `find_method` wraps Regexes plus `&(sub)parse` - both freshly on each call!
+    * **bare RegexSimple isa Grammar:** without any `use Grammar::*`
+    * **Hooks_01:** !INCORRECT! `find_method` wraps Regexes freshly on each call but `&(sub)parse` are NOT wrapped
+    * **Hooks_02:** `find_method` wraps Regexes freshly on each call but `&(sub)parse` wrapped in `publish_method_cache`
+    * **Hooks_03:** Regexes and `&(sub)parse` wrapped only once each, `find_method` NOT overridden but method cache still disabled
+    * **Tracer_00_standalone:** !INCORRECT! as it was: with `use Term::ANSICOLOR` and *like* `Hooks_01` but does all on itself (directly inherits `Metamodel::GrammarHOW`, no `onRegexEnter`... )
+    * **Tracer_00_h00:** `is Hooks_00` / `use Term::ANSICOLOR`
+    * **Tracer_00_h01:** `is Hooks_01` / `use Term::ANSICOLOR`
+    * **Tracer_00_h02:** `is Hooks_02` / `use Term::ANSICOLOR`
+    * **Tracer_01_standalone:** !INCORRECT! as it was but NO `Term::ANSICOLOR` and *like* `Hooks_01` but does all on itself (directly inherits `Metamodel::GrammarHOW`, no `onRegexEnter`... )
+    * **Tracer_01_h00:** `is Hooks_00` / NO `Term::ANSICOLOR`
+    * **Tracer_01_h01:** `is Hooks_01` / NO `Term::ANSICOLOR`
+    * **Tracer_01_h02:** `is Hooks_02` / NO `Term::ANSICOLOR`
+    * **Tracer_01_h03:** `is Hooks_03` / NO `Term::ANSICOLOR`
 
 
 
