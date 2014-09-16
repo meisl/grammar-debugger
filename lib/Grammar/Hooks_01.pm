@@ -58,7 +58,7 @@ class Hooks_01 is Metamodel::GrammarHOW {
     }
 
     method describe($obj) {
-        '`find_method` wraps Regexes freshly on each call but `&(sub)parse` are NOT wrapped (incorrect!)';
+        '!INCORRECT! `find_method` wraps Regexes freshly on each call but `&(sub)parse` are NOT wrapped';
     }
 
     method publish_method_cache($obj) {

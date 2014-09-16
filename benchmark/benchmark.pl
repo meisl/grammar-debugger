@@ -21,7 +21,7 @@ sub test(Grammar $G where {$_ ~~ Benchmarking}, Int :$repeat = 2, Bool :$referen
     @legend-exercises.push( ($gist => $G.describe));
 
     my $t = 0;
-    my $input = $G.tiny-input();
+    my $input = $G.medium-input();
     {
         my $*OUT = class { method print(|x) {}; method flush(|x) {} };
         #my $*ERR = class { method print(|x) {}; method flush(|x) {} };
@@ -87,6 +87,16 @@ if ($t_ref.defined) {
   test(G, :repeat(1));
 }
 
+{ use Grammar::Tracer_00_h01;
+  my grammar G is RegexSimple {}
+  test(G, :repeat(1));
+}
+
+{ use Grammar::Tracer_00_h02;
+  my grammar G is RegexSimple {}
+  test(G, :repeat(1));
+}
+
 { use Grammar::Tracer_01_standalone;
   my grammar G is RegexSimple {}
   test(G, :repeat(1));
@@ -98,6 +108,11 @@ if ($t_ref.defined) {
 }
 
 { use Grammar::Tracer_01_h01;
+  my grammar G is RegexSimple {}
+  test(G, :repeat(1));
+}
+
+{ use Grammar::Tracer_01_h02;
   my grammar G is RegexSimple {}
   test(G, :repeat(1));
 }
@@ -192,6 +207,38 @@ Output completed (4 min 21 sec consumed) - Normal Termination
 # Grammar::Tracer_00_h00 - is Hooks_00 / "use Term::ANSICOLOR"                                                            :    29.812 sec       5.02 x slower  (avg of  1 runs)
 
 Output completed (1 min 7 sec consumed) - Normal Termination
+
+
+
+---------- run perl6 ----------
+##### 2014-09-16T13:33:39+0200 / rakudo 2014.03.01 on parrot / MSWin32
+# Hooks_00:                              32.781 sec       1.00 x reference  (avg'd  1 runs)
+# bare RegexSimple isa Grammar:           0.026 sec    1260.81 x FASTER :D  (avg'd 15 runs)
+# Hooks_01:                               0.438 sec      74.93 x FASTER :D  (avg'd  2 runs)
+# Hooks_02:                               0.383 sec      85.59 x FASTER :D  (avg'd  2 runs)
+# Tracer_00_standalone:                  85.765 sec       2.62 x slower :(  (avg'd  1 runs)
+# Tracer_00_h00:                         99.641 sec       3.04 x slower :(  (avg'd  1 runs)
+# Tracer_00_h01:                         92.563 sec       2.82 x slower :(  (avg'd  1 runs)
+# Tracer_01_standalone:                   1.203 sec      27.25 x FASTER :D  (avg'd  1 runs)
+# Tracer_01_h00:                         42.704 sec       1.30 x slower :(  (avg'd  1 runs)
+# Tracer_01_h01:                          1.563 sec      20.97 x FASTER :D  (avg'd  1 runs)
+
+
+
+##### 2014-09-16T14:14:48+0200 / rakudo 2014.03.01 on parrot / MSWin32
+# Hooks_00:                              37.672 sec       1.00 x reference  (avg'd  1 runs)
+# bare RegexSimple isa Grammar:           0.043 sec     881.56 x FASTER :D  (avg'd 15 runs)
+# Hooks_01:                               0.391 sec      96.47 x FASTER :D  (avg'd  2 runs)
+# Hooks_02:                               0.398 sec      94.53 x FASTER :D  (avg'd  2 runs)
+# Tracer_00_standalone:                  84.859 sec       2.25 x slower :(  (avg'd  1 runs)
+# Tracer_00_h00:                        101.110 sec       2.68 x slower :(  (avg'd  1 runs)
+# Tracer_00_h01:                         93.063 sec       2.47 x slower :(  (avg'd  1 runs)
+# Tracer_00_h02:                         98.500 sec       2.61 x slower :(  (avg'd  1 runs)
+# Tracer_01_standalone:                   1.500 sec      25.11 x FASTER :D  (avg'd  1 runs)
+# Tracer_01_h00:                         66.235 sec       1.76 x slower :(  (avg'd  1 runs)
+# Tracer_01_h01:                          1.266 sec      29.76 x FASTER :D  (avg'd  1 runs)
+# Tracer_01_h02:                          1.453 sec      25.93 x FASTER :D  (avg'd  1 runs)
+
 
 
 ENDOFHEREDOC
