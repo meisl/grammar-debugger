@@ -54,6 +54,7 @@ sub test(Grammar $G where {$_ ~~ Benchmarking}, Int :$repeat = 2, Bool :$referen
 my $t = DateTime.now;
 say sprintf("##### %s / %s %s on %s / %s\n```", $t, $*PERL<compiler><name>, $*PERL<compiler><ver>, $*VM<name>, $*OS);
 
+
 #$t_ref = 17.969;
 if ($t_ref.defined) {
     say '#                                        with "Grammar::Hooks":    17.969 sec       1.00 x         (avg of  1 runs)';
@@ -65,6 +66,8 @@ if ($t_ref.defined) {
 
 { test(RegexSimple, :repeat(15));
 }
+
+# --- Hooks variants ----------------------------------------------------------
 
 { use Grammar::Hooks_01;
   my grammar G is RegexSimple {}
@@ -83,11 +86,7 @@ if ($t_ref.defined) {
 
 # --- Tracer variants ---------------------------------------------------------
 
-
-#{ use Grammar::Tracer_01_h03;
-#  my grammar G is RegexSimple {}
-#  test(G, :repeat(5));
-#}
+# --- Tracer_00 (with ANSIColor) ------------------------------
 
 { use Grammar::Tracer_00_standalone;
   my grammar G is RegexSimple {}
@@ -109,9 +108,16 @@ if ($t_ref.defined) {
   test(G, :repeat(1));
 }
 
-{ use Grammar::Tracer_01_standalone;
+{ use Grammar::Tracer_00_h03;
   my grammar G is RegexSimple {}
   test(G, :repeat(1));
+}
+
+# --- Tracer_01 (no ANSIColor) --------------------------------
+
+{ use Grammar::Tracer_01_standalone;
+  my grammar G is RegexSimple {}
+  test(G, :repeat(2));
 }
 
 { use Grammar::Tracer_01_h00;
@@ -126,12 +132,12 @@ if ($t_ref.defined) {
 
 { use Grammar::Tracer_01_h02;
   my grammar G is RegexSimple {}
-  test(G, :repeat(1));
+  test(G, :repeat(2));
 }
 
 { use Grammar::Tracer_01_h03;
   my grammar G is RegexSimple {}
-  test(G, :repeat(1));
+  test(G, :repeat(2));
 }
 
 say "\n```\n----\n###### Legend:";
@@ -257,22 +263,24 @@ Output completed (1 min 7 sec consumed) - Normal Termination
 # Tracer_01_h02:                          1.453 sec      25.93 x FASTER :D  (avg'd  1 runs)
 
 
-##### 2014-09-17T00:13:11+0200 / rakudo 2014.03.01 on parrot / MSWin32
+
+##### 2014-09-17T14:12:44+0200 / rakudo 2014.03.01 on parrot / MSWin32
 ```
-# Hooks_00:                              36.453 sec       1.00 x reference  (avg'd  1 runs)
-# bare RegexSimple isa Grammar:           0.046 sec     794.76 x FASTER :D  (avg'd 15 runs)
-# Hooks_01:                               0.644 sec      56.62 x FASTER :D  (avg'd  5 runs)
-# Hooks_02:                               0.647 sec      56.36 x FASTER :D  (avg'd  5 runs)
-# Hooks_03:                               0.125 sec     291.62 x FASTER :D  (avg'd 10 runs)
-# Tracer_00_standalone:                  90.671 sec       2.49 x slower :(  (avg'd  1 runs)
-# Tracer_00_h00:                        105.078 sec       2.88 x slower :(  (avg'd  1 runs)
-# Tracer_00_h01:                        100.422 sec       2.75 x slower :(  (avg'd  1 runs)
-# Tracer_00_h02:                        105.891 sec       2.90 x slower :(  (avg'd  1 runs)
-# Tracer_01_standalone:                   1.750 sec      20.83 x FASTER :D  (avg'd  1 runs)
-# Tracer_01_h00:                         78.000 sec       2.14 x slower :(  (avg'd  1 runs)
-# Tracer_01_h01:                          2.281 sec      15.98 x FASTER :D  (avg'd  1 runs)
-# Tracer_01_h02:                          1.781 sec      20.47 x FASTER :D  (avg'd  1 runs)
-# Tracer_01_h03:                          1.047 sec      34.82 x FASTER :D  (avg'd  1 runs)
+# Hooks_00:                              33.266 sec       1.00 x reference  (avg'd  1 runs)
+# bare RegexSimple isa Grammar:           0.026 sec    1279.46 x FASTER :D  (avg'd 15 runs)
+# Hooks_01:                               0.594 sec      56.02 x FASTER :D  (avg'd  5 runs)
+# Hooks_02:                               0.612 sec      54.32 x FASTER :D  (avg'd  5 runs)
+# Hooks_03:                               0.128 sec     259.69 x FASTER :D  (avg'd 10 runs)
+# Tracer_00_standalone:                  86.469 sec       2.60 x slower :(  (avg'd  1 runs)
+# Tracer_00_h00:                        102.031 sec       3.07 x slower :(  (avg'd  1 runs)
+# Tracer_00_h01:                         94.203 sec       2.83 x slower :(  (avg'd  1 runs)
+# Tracer_00_h02:                        102.312 sec       3.08 x slower :(  (avg'd  1 runs)
+# Tracer_00_h03:                         77.593 sec       2.33 x slower :(  (avg'd  1 runs)
+# Tracer_01_standalone:                   1.508 sec      22.06 x FASTER :D  (avg'd  2 runs)
+# Tracer_01_h00:                         25.328 sec       1.31 x FASTER :D  (avg'd  1 runs)
+# Tracer_01_h01:                          1.718 sec      19.36 x FASTER :D  (avg'd  1 runs)
+# Tracer_01_h02:                          1.508 sec      22.06 x FASTER :D  (avg'd  2 runs)
+# Tracer_01_h03:                          0.953 sec      34.89 x FASTER :D  (avg'd  2 runs)
 
 ```
 ----
@@ -289,6 +297,7 @@ Output completed (1 min 7 sec consumed) - Normal Termination
     * **Tracer_00_h00:** `is Hooks_00` / `use Term::ANSICOLOR`
     * **Tracer_00_h01:** `is Hooks_01` / `use Term::ANSICOLOR`
     * **Tracer_00_h02:** `is Hooks_02` / `use Term::ANSICOLOR`
+    * **Tracer_00_h03:** `is Hooks_03` / `use Term::ANSICOLOR`
     * **Tracer_01_standalone:** !INCORRECT! as it was but NO `Term::ANSICOLOR` and *like* `Hooks_01` but does all on itself (directly inherits `Metamodel::GrammarHOW`, no `onRegexEnter`... )
     * **Tracer_01_h00:** `is Hooks_00` / NO `Term::ANSICOLOR`
     * **Tracer_01_h01:** `is Hooks_01` / NO `Term::ANSICOLOR`
