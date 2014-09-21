@@ -36,8 +36,8 @@ role Benchmarking {
             }
             return $out;
         } else {
-            return $metaName;
-            }
+            return 'RxSimple M / ' ~ $metaName;
+        }
     }
 
 }
@@ -59,8 +59,10 @@ grammar RegexSimple does Benchmarking {
     token rx_quant      { '?' | '*' | '+' }
     
     token rx_braced {
-        | '<' <rx_brcd_angle> '>'
+        [ '<' <rx_brcd_angle> '>'
         | '[' <rx> ']'
+        | '(' <rx> ')'
+        ]
     }
     token rx_brcd_angle {
         [ <ident> [ '=' <ident> ]* [ '=' <rx_cclass> ]?
@@ -139,8 +141,10 @@ return Q:to/ENDOFHEREDOC/; # uppercase Q: NO interpolation!
         token rx_quant      { '?' | '*' | '+' }
     
         token rx_braced {
-            | '<' <rx_brcd_angle> '>'
+            [ '<' <rx_brcd_angle> '>'
             | '[' <rx> ']'
+            | '(' <rx> ')'
+            ]
         }
         token rx_brcd_angle {
             [ <ident> [ '=' <ident> ]* [ '=' <rx_cclass> ]?
