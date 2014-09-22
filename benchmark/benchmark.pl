@@ -8,12 +8,16 @@ use Grammar::Example::RegexSimple;
 # but rather pick 'em in their own lexical scopes below
 
 
-my $scale = 4;
+my @scales = <0 1 2 3 4 5 6 7 8 12 16 20 24 28 32 40 48 56 64 96 128 192 256 384 512>;
+
+my $scale = 56;
 # tiny:     1
 # small:    2
 # medium:   4
 # large:    8
 # huge:    12
+
+
 
 my $t_ref;
 my @legend-exercises = ();
@@ -26,30 +30,34 @@ sub test(Grammar $G where {$_ ~~ Benchmarking}, Int :$repeat = 2, Bool :$referen
     $*OUT.flush();
     @legend-exercises.push( ($gist => $G.describe));
 
-    my $t = 0;
+    my $ttl = 0;
+    my @raw_times = @();
     {
         my $*OUT = class { method print(|x) {}; method flush(|x) {} };
         #my $*ERR = class { method print(|x) {}; method flush(|x) {} };
 
         for 1..$repeat {
-            $t -= nqp::p6box_n(nqp::time_n);
+            my $t = -nqp::p6box_n(nqp::time_n);
             $G.doWork($scale);
-            $t += nqp::p6box_n(nqp::time_n);;
+            $t += nqp::p6box_n(nqp::time_n);
+            @raw_times.push($t);
+            $ttl += $t;
         }
-        $t = $t / $repeat;
+        $ttl = $ttl / $repeat;
     }
     my $f = 1;
     my $which = 'reference';
     if ($reference-time) {
-        $t_ref = $t;
-    } elsif $t > $t_ref {
-        $f = $t / $t_ref;
+        $t_ref = $ttl;
+    } elsif $ttl > $t_ref {
+        $f = $ttl / $t_ref;
         $which = 'slower :(';
     } else {
-        $f = $t_ref / $t;
+        $f = $t_ref / $ttl;
         $which = 'FASTER :D';
     }
-    say sprintf(" %8.3f sec  %9.2f x %6s  (avg'd %2d runs)", $t, $f, $which, $repeat);
+    my $summary = sprintf(" %8.3f sec  %9.2f x %6s  %9.2f  (avg'd %2d runs)", $ttl, $f, $which, $scale/$ttl, $repeat);
+    say $summary;
 }
 # `Grammar::Hooks_02 - find_method wraps Regexes but &(sub)parse wrapped in publish_method_cache:     0.054 sec      22.94 x faster  (avg of  2 runs)
 
@@ -60,7 +68,7 @@ my $t = DateTime.now;
 say sprintf("##### %s / %s %s on %s / %s / scale: %d\n```", $t, $*PERL<compiler><name>, $*PERL<compiler><ver>, $*VM<name>, $*OS, $scale);
 
 
-#$t_ref = 17.969;
+$t_ref = 17.969;
 if ($t_ref.defined) {
     say '#                                        with "Grammar::Hooks":    17.969 sec       1.00 x         (avg of  1 runs)';
 } else {
@@ -69,10 +77,8 @@ if ($t_ref.defined) {
   test(G, :reference-time, :repeat(1));
 }
 
-{ test(RegexSimple, :repeat(15));
+{ test(RegexSimple, :repeat(2));
 }
-
-# --- Hooks variants ----------------------------------------------------------
 
 { use Grammar::Hooks_01;
   my grammar G is RegexSimple {}
@@ -86,9 +92,40 @@ if ($t_ref.defined) {
 
 { use Grammar::Hooks_03;
   my grammar G is RegexSimple {}
-  test(G, :repeat(10));
+  test(G, :repeat(2));
 }
 
+{ use Grammar::Hooks_04;
+  my grammar G is RegexSimple {}
+  test(G, :repeat(2));
+}
+
+# ----------------------------------------
+
+{ use Grammar::Tracer_01_h01;
+  my grammar G is RegexSimple {}
+  test(G, :repeat(1));
+}
+
+{ use Grammar::Tracer_01_h02;
+  my grammar G is RegexSimple {}
+  test(G, :repeat(2));
+}
+
+{ use Grammar::Tracer_01_h03;
+  my grammar G is RegexSimple {}
+  test(G, :repeat(2));
+}
+
+{ use Grammar::Tracer_01_h04;
+  my grammar G is RegexSimple {}
+  test(G, :repeat(2));
+}
+exit;
+
+
+# --- Hooks variants ----------------------------------------------------------
+exit;
 # --- Tracer variants ---------------------------------------------------------
 
 # --- Tracer_00 (with ANSIColor) ------------------------------
@@ -130,20 +167,6 @@ if ($t_ref.defined) {
   test(G, :repeat(1));
 }
 
-{ use Grammar::Tracer_01_h01;
-  my grammar G is RegexSimple {}
-  test(G, :repeat(1));
-}
-
-{ use Grammar::Tracer_01_h02;
-  my grammar G is RegexSimple {}
-  test(G, :repeat(2));
-}
-
-{ use Grammar::Tracer_01_h03;
-  my grammar G is RegexSimple {}
-  test(G, :repeat(2));
-}
 
 say "\n```\n----\n###### Legend:";
 say '  * Tasks';
@@ -310,7 +333,7 @@ Output completed (1 min 7 sec consumed) - Normal Termination
     * **Tracer_01_h03:** `is Hooks_03` / NO `Term::ANSICOLOR`
 
 
----------- run perl6 ----------
+
 ##### 2014-09-22T16:15:22+0200 / rakudo 2014.03.01 on parrot / MSWin32 / scale: 2
 ```
 # RxSimple / Hooks_00:                   21.187 sec       1.00 x reference  (avg'd  1 runs)
@@ -329,27 +352,67 @@ Output completed (1 min 7 sec consumed) - Normal Termination
 # RxSimple / Tracer_01_h02:               0.828 sec      25.59 x FASTER :D  (avg'd  2 runs)
 # RxSimple / Tracer_01_h03:               0.625 sec      33.90 x FASTER :D  (avg'd  2 runs)
 
+
+
+##### 2014-09-22T16:24:14+0200 / rakudo 2014.03.01 on parrot / MSWin32 / scale: 4
 ```
-----
-###### Legend:
-  * Tasks
-    * **Rx**: `Grammar::Example::RegexSimple`: basic regex declarations, eg `rule TOP { ^ <foo>* $ }`; able to parse its own body (!)
-  * Exercises
-    * **RxSimple / Hooks_00:** `find_method` wraps Regexes plus `&(sub)parse` - both freshly on each call!
-    * **bare RegexSimple isa B isa Grammar:** without any `use Grammar::*`
-    * **RxSimple / Hooks_01:** !INCORRECT! `find_method` wraps Regexes freshly on each call but `&(sub)parse` are NOT wrapped
-    * **RxSimple / Hooks_02:** `find_method` wraps Regexes freshly on each call but `&(sub)parse` wrapped in `publish_method_cache`
-    * **RxSimple / Hooks_03:** Regexes and `&(sub)parse` wrapped only once each, `find_method` NOT overridden but method cache still disabled
-    * **RxSimple / Tracer_00_standalone:** !INCORRECT! as it was: with `use Term::ANSICOLOR` and *like* `Hooks_01` but does all on itself (directly inherits `Metamodel::GrammarHOW`, no `onRegexEnter`... )
-    * **RxSimple / Tracer_00_h00:** `is Hooks_00` / `use Term::ANSICOLOR`
-    * **RxSimple / Tracer_00_h01:** `is Hooks_01` / `use Term::ANSICOLOR`
-    * **RxSimple / Tracer_00_h02:** `is Hooks_02` / `use Term::ANSICOLOR`
-    * **RxSimple / Tracer_00_h03:** `is Hooks_03` / `use Term::ANSICOLOR`
-    * **RxSimple / Tracer_01_standalone:** !INCORRECT! as it was but NO `Term::ANSICOLOR` and *like* `Hooks_01` but does all on itself (directly inherits `Metamodel::GrammarHOW`, no `onRegexEnter`... )
-    * **RxSimple / Tracer_01_h00:** `is Hooks_00` / NO `Term::ANSICOLOR`
-    * **RxSimple / Tracer_01_h01:** `is Hooks_01` / NO `Term::ANSICOLOR`
-    * **RxSimple / Tracer_01_h02:** `is Hooks_02` / NO `Term::ANSICOLOR`
-    * **RxSimple / Tracer_01_h03:** `is Hooks_03` / NO `Term::ANSICOLOR`
+# RxSimple / Hooks_00:                   32.985 sec       1.00 x reference  (avg'd  1 runs)
+# bare RegexSimple isa B isa Grammar:     0.053 sec     620.02 x FASTER :D  (avg'd  5 runs)
+# RxSimple / Hooks_01:                    0.419 sec      78.80 x FASTER :D  (avg'd  5 runs)
+# RxSimple / Hooks_02:                    0.422 sec      78.20 x FASTER :D  (avg'd  5 runs)
+# RxSimple / Hooks_03:                    0.178 sec     185.20 x FASTER :D  (avg'd 10 runs)
+# RxSimple / Tracer_00_standalone:       86.406 sec       2.62 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_00_h00:              99.281 sec       3.01 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_00_h01:              95.109 sec       2.88 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_00_h02:             102.156 sec       3.10 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_00_h03:              94.765 sec       2.87 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_01_standalone:        1.406 sec      23.45 x FASTER :D  (avg'd  2 runs)
+# RxSimple / Tracer_01_h00:              27.547 sec       1.20 x FASTER :D  (avg'd  1 runs)
+# RxSimple / Tracer_01_h01:               1.516 sec      21.76 x FASTER :D  (avg'd  1 runs)
+# RxSimple / Tracer_01_h02:               1.367 sec      24.12 x FASTER :D  (avg'd  2 runs)
+# RxSimple / Tracer_01_h03:               1.109 sec      29.73 x FASTER :D  (avg'd  2 runs)
+
+
+
+
+##### 2014-09-22T16:51:01+0200 / rakudo 2014.03.01 on parrot / MSWin32 / scale: 1
+```
+# RxSimple / Hooks_00:                    2.219 sec       1.00 x reference  (avg'd  1 runs)
+# bare RegexSimple isa B isa Grammar:     0.006 sec     354.09 x FASTER :D  (avg'd 15 runs)
+# RxSimple / Hooks_01:                    0.091 sec      24.49 x FASTER :D  (avg'd  5 runs)
+# RxSimple / Hooks_02:                    0.091 sec      24.49 x FASTER :D  (avg'd  5 runs)
+# RxSimple / Hooks_03:                    0.030 sec      74.97 x FASTER :D  (avg'd 10 runs)
+# RxSimple / Tracer_00_standalone:       13.469 sec       6.07 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_00_h00:              18.532 sec       8.35 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_00_h01:              14.234 sec       6.41 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_00_h02:              16.125 sec       7.27 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_00_h03:              15.563 sec       7.01 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_01_standalone:        0.172 sec      12.90 x FASTER :D  (avg'd  2 runs)
+# RxSimple / Tracer_01_h00:               3.954 sec       1.78 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_01_h01:               0.172 sec      12.90 x FASTER :D  (avg'd  1 runs)
+# RxSimple / Tracer_01_h02:               0.250 sec       8.88 x FASTER :D  (avg'd  2 runs)
+# RxSimple / Tracer_01_h03:               0.133 sec      16.68 x FASTER :D  (avg'd  2 runs)
+
+
+
+##### 2014-09-22T16:54:20+0200 / rakudo 2014.03.01 on parrot / MSWin32 / scale: 5
+```
+# RxSimple / Hooks_00:                   42.234 sec       1.00 x reference  (avg'd  1 runs)
+# bare RegexSimple isa B isa Grammar:     0.036 sec    1158.15 x FASTER :D  (avg'd 15 runs)
+# RxSimple / Hooks_01:                    0.584 sec      72.27 x FASTER :D  (avg'd  5 runs)
+# RxSimple / Hooks_02:                    0.566 sec      74.67 x FASTER :D  (avg'd  5 runs)
+# RxSimple / Hooks_03:                    0.241 sec     175.46 x FASTER :D  (avg'd 10 runs)
+# RxSimple / Tracer_00_standalone:      117.953 sec       2.79 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_00_h00:             144.234 sec       3.42 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_00_h01:             139.016 sec       3.29 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_00_h02:             136.610 sec       3.23 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_00_h03:             144.625 sec       3.42 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_01_standalone:        1.883 sec      22.43 x FASTER :D  (avg'd  2 runs)
+# RxSimple / Tracer_01_h00:              88.906 sec       2.11 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_01_h01:               3.219 sec      13.12 x FASTER :D  (avg'd  1 runs)
+# RxSimple / Tracer_01_h02:               2.016 sec      20.95 x FASTER :D  (avg'd  2 runs)
+# RxSimple / Tracer_01_h03:               1.695 sec      24.92 x FASTER :D  (avg'd  2 runs)
+
 
 
 

@@ -93,12 +93,13 @@ grammar B does Benchmarking {
         if $scale == 0 {
             @results.push(self.parse(''));
         } else {
-            while $scale > $nRules {
+            my $n = $scale;
+            while $n > $nRules {
                 @results.push(self.parse(%texts{$nRules}));
-                $scale -= $nRules;
+                $n -= $nRules;
             }
-            @results.push(self.parse(%texts{$scale}))
-                unless $scale == 0;
+            @results.push(self.parse(%texts{$n}))
+                unless $n == 0;
         }
         @results;
     }
