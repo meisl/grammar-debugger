@@ -105,14 +105,4 @@ grammar B does Benchmarking {
     }
 }
 
-my $RegexSimple = EVAL('our grammar RegexSimple is B is export {' ~ $grammarBody ~ "\n}");
-
-
-#grammar _RegexSimple is export {}
-
-#UNIT::EXPORT::DEFAULT::<RegexSimple> = $RegexSimple_raw;
-#UNIT::EXPORT::ALL::<RegexSimple> = $RegexSimple_raw;
-
-#say UNIT::EXPORT::ALL::.perl;
-
-
+my $RegexSimple = EVAL('our grammar RxSimple is B is export {' ~ $grammarBody ~ "\n}");

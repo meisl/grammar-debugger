@@ -1,6 +1,6 @@
 use v6;
 
-use Grammar::Example::RegexSimple;
+use Grammar::Example::RxSimple;
 
 # NOTE: we DON'T "use Grammar::Tracer" *here*
 #       nor "use Grammar::Debugger"
@@ -10,7 +10,7 @@ use Grammar::Example::RegexSimple;
 
 my @scales = <0 1 2 3 4 5 6 7 8 12 16 20 24 28 32 40 48 56 64 96 128 192 256 384 512>;
 
-my $scale = 56;
+my $scale = 2;
 # tiny:     1
 # small:    2
 # medium:   4
@@ -73,52 +73,52 @@ if ($t_ref.defined) {
     say '#                                        with "Grammar::Hooks":    17.969 sec       1.00 x         (avg of  1 runs)';
 } else {
   use Grammar::Hooks_00;
-  my grammar G is RegexSimple {}
+  my grammar G is RxSimple {}
   test(G, :reference-time, :repeat(1));
 }
 
-{ test(RegexSimple, :repeat(2));
+{ test(RxSimple, :repeat(2));
 }
 
 { use Grammar::Hooks_01;
-  my grammar G is RegexSimple {}
+  my grammar G is RxSimple {}
   test(G, :repeat(5));
 }
 
 { use Grammar::Hooks_02;
-  my grammar G is RegexSimple {}
+  my grammar G is RxSimple {}
   test(G, :repeat(5));
 }
 
 { use Grammar::Hooks_03;
-  my grammar G is RegexSimple {}
+  my grammar G is RxSimple {}
   test(G, :repeat(2));
 }
 
 { use Grammar::Hooks_04;
-  my grammar G is RegexSimple {}
+  my grammar G is RxSimple {}
   test(G, :repeat(2));
 }
 
 # ----------------------------------------
 
 { use Grammar::Tracer_01_h01;
-  my grammar G is RegexSimple {}
+  my grammar G is RxSimple {}
   test(G, :repeat(1));
 }
 
 { use Grammar::Tracer_01_h02;
-  my grammar G is RegexSimple {}
+  my grammar G is RxSimple {}
   test(G, :repeat(2));
 }
 
 { use Grammar::Tracer_01_h03;
-  my grammar G is RegexSimple {}
+  my grammar G is RxSimple {}
   test(G, :repeat(2));
 }
 
 { use Grammar::Tracer_01_h04;
-  my grammar G is RegexSimple {}
+  my grammar G is RxSimple {}
   test(G, :repeat(2));
 }
 exit;
@@ -131,46 +131,46 @@ exit;
 # --- Tracer_00 (with ANSIColor) ------------------------------
 
 { use Grammar::Tracer_00_standalone;
-  my grammar G is RegexSimple {}
+  my grammar G is RxSimple {}
   test(G, :repeat(1));
 }
 
 { use Grammar::Tracer_00_h00;
-  my grammar G is RegexSimple {}
+  my grammar G is RxSimple {}
   test(G, :repeat(1));
 }
 
 { use Grammar::Tracer_00_h01;
-  my grammar G is RegexSimple {}
+  my grammar G is RxSimple {}
   test(G, :repeat(1));
 }
 
 { use Grammar::Tracer_00_h02;
-  my grammar G is RegexSimple {}
+  my grammar G is RxSimple {}
   test(G, :repeat(1));
 }
 
 { use Grammar::Tracer_00_h03;
-  my grammar G is RegexSimple {}
+  my grammar G is RxSimple {}
   test(G, :repeat(1));
 }
 
 # --- Tracer_01 (no ANSIColor) --------------------------------
 
 { use Grammar::Tracer_01_standalone;
-  my grammar G is RegexSimple {}
+  my grammar G is RxSimple {}
   test(G, :repeat(2));
 }
 
 { use Grammar::Tracer_01_h00;
-  my grammar G is RegexSimple {}
+  my grammar G is RxSimple {}
   test(G, :repeat(1));
 }
 
 
 say "\n```\n----\n###### Legend:";
 say '  * Tasks';
-say '    * **Rx**: `Grammar::Example::RegexSimple`: basic regex declarations, eg `rule TOP { ^ <foo>* $ }`; able to parse its own body (!)';
+say '    * **Rx**: `Grammar::Example::RxSimple`: basic regex declarations, eg `rule TOP { ^ <foo>* $ }`; able to parse its own body (!)';
 say '  * Exercises';
 say @legend-exercises.map({ '    * **' ~ $_.key ~ ':** ' ~ $_.value}).join("\n");
 
@@ -264,7 +264,7 @@ Output completed (1 min 7 sec consumed) - Normal Termination
 ---------- run perl6 ----------
 ##### 2014-09-16T13:33:39+0200 / rakudo 2014.03.01 on parrot / MSWin32
 # Hooks_00:                              32.781 sec       1.00 x reference  (avg'd  1 runs)
-# bare RegexSimple isa Grammar:           0.026 sec    1260.81 x FASTER :D  (avg'd 15 runs)
+# bare RxSimple isa Grammar:           0.026 sec    1260.81 x FASTER :D  (avg'd 15 runs)
 # Hooks_01:                               0.438 sec      74.93 x FASTER :D  (avg'd  2 runs)
 # Hooks_02:                               0.383 sec      85.59 x FASTER :D  (avg'd  2 runs)
 # Tracer_00_standalone:                  85.765 sec       2.62 x slower :(  (avg'd  1 runs)
@@ -278,7 +278,7 @@ Output completed (1 min 7 sec consumed) - Normal Termination
 
 ##### 2014-09-16T14:14:48+0200 / rakudo 2014.03.01 on parrot / MSWin32
 # Hooks_00:                              37.672 sec       1.00 x reference  (avg'd  1 runs)
-# bare RegexSimple isa Grammar:           0.043 sec     881.56 x FASTER :D  (avg'd 15 runs)
+# bare RxSimple isa Grammar:           0.043 sec     881.56 x FASTER :D  (avg'd 15 runs)
 # Hooks_01:                               0.391 sec      96.47 x FASTER :D  (avg'd  2 runs)
 # Hooks_02:                               0.398 sec      94.53 x FASTER :D  (avg'd  2 runs)
 # Tracer_00_standalone:                  84.859 sec       2.25 x slower :(  (avg'd  1 runs)
@@ -295,7 +295,7 @@ Output completed (1 min 7 sec consumed) - Normal Termination
 ##### 2014-09-17T14:12:44+0200 / rakudo 2014.03.01 on parrot / MSWin32
 ```
 # Hooks_00:                              33.266 sec       1.00 x reference  (avg'd  1 runs)
-# bare RegexSimple isa Grammar:           0.026 sec    1279.46 x FASTER :D  (avg'd 15 runs)
+# bare RxSimple isa Grammar:           0.026 sec    1279.46 x FASTER :D  (avg'd 15 runs)
 # Hooks_01:                               0.594 sec      56.02 x FASTER :D  (avg'd  5 runs)
 # Hooks_02:                               0.612 sec      54.32 x FASTER :D  (avg'd  5 runs)
 # Hooks_03:                               0.128 sec     259.69 x FASTER :D  (avg'd 10 runs)
@@ -314,10 +314,10 @@ Output completed (1 min 7 sec consumed) - Normal Termination
 ----
 ###### Legend:
   * Tasks
-    * **Rx**: `Grammar::Example::RegexSimple`: basic regex declarations, eg `rule TOP { ^ <foo>* $ }`; able to parse its own body (!)
+    * **Rx**: `Grammar::Example::RxSimple`: basic regex declarations, eg `rule TOP { ^ <foo>* $ }`; able to parse its own body (!)
   * Exercises
     * **Hooks_00:** `find_method` wraps Regexes plus `&(sub)parse` - both freshly on each call!
-    * **bare RegexSimple isa Grammar:** without any `use Grammar::*`
+    * **bare RxSimple isa Grammar:** without any `use Grammar::*`
     * **Hooks_01:** !INCORRECT! `find_method` wraps Regexes freshly on each call but `&(sub)parse` are NOT wrapped
     * **Hooks_02:** `find_method` wraps Regexes freshly on each call but `&(sub)parse` wrapped in `publish_method_cache`
     * **Hooks_03:** Regexes and `&(sub)parse` wrapped only once each, `find_method` NOT overridden but method cache still disabled
@@ -337,7 +337,7 @@ Output completed (1 min 7 sec consumed) - Normal Termination
 ##### 2014-09-22T16:15:22+0200 / rakudo 2014.03.01 on parrot / MSWin32 / scale: 2
 ```
 # RxSimple / Hooks_00:                   21.187 sec       1.00 x reference  (avg'd  1 runs)
-# bare RegexSimple isa B isa Grammar:     0.022 sec     971.87 x FASTER :D  (avg'd  5 runs)
+# bare RxSimple isa B isa Grammar:     0.022 sec     971.87 x FASTER :D  (avg'd  5 runs)
 # RxSimple / Hooks_01:                    0.266 sec      79.77 x FASTER :D  (avg'd  5 runs)
 # RxSimple / Hooks_02:                    0.259 sec      81.68 x FASTER :D  (avg'd  5 runs)
 # RxSimple / Hooks_03:                    0.114 sec     185.69 x FASTER :D  (avg'd 10 runs)
@@ -357,7 +357,7 @@ Output completed (1 min 7 sec consumed) - Normal Termination
 ##### 2014-09-22T16:24:14+0200 / rakudo 2014.03.01 on parrot / MSWin32 / scale: 4
 ```
 # RxSimple / Hooks_00:                   32.985 sec       1.00 x reference  (avg'd  1 runs)
-# bare RegexSimple isa B isa Grammar:     0.053 sec     620.02 x FASTER :D  (avg'd  5 runs)
+# bare RxSimple isa B isa Grammar:     0.053 sec     620.02 x FASTER :D  (avg'd  5 runs)
 # RxSimple / Hooks_01:                    0.419 sec      78.80 x FASTER :D  (avg'd  5 runs)
 # RxSimple / Hooks_02:                    0.422 sec      78.20 x FASTER :D  (avg'd  5 runs)
 # RxSimple / Hooks_03:                    0.178 sec     185.20 x FASTER :D  (avg'd 10 runs)
@@ -378,7 +378,7 @@ Output completed (1 min 7 sec consumed) - Normal Termination
 ##### 2014-09-22T16:51:01+0200 / rakudo 2014.03.01 on parrot / MSWin32 / scale: 1
 ```
 # RxSimple / Hooks_00:                    2.219 sec       1.00 x reference  (avg'd  1 runs)
-# bare RegexSimple isa B isa Grammar:     0.006 sec     354.09 x FASTER :D  (avg'd 15 runs)
+# bare RxSimple isa B isa Grammar:     0.006 sec     354.09 x FASTER :D  (avg'd 15 runs)
 # RxSimple / Hooks_01:                    0.091 sec      24.49 x FASTER :D  (avg'd  5 runs)
 # RxSimple / Hooks_02:                    0.091 sec      24.49 x FASTER :D  (avg'd  5 runs)
 # RxSimple / Hooks_03:                    0.030 sec      74.97 x FASTER :D  (avg'd 10 runs)
@@ -398,7 +398,7 @@ Output completed (1 min 7 sec consumed) - Normal Termination
 ##### 2014-09-22T16:54:20+0200 / rakudo 2014.03.01 on parrot / MSWin32 / scale: 5
 ```
 # RxSimple / Hooks_00:                   42.234 sec       1.00 x reference  (avg'd  1 runs)
-# bare RegexSimple isa B isa Grammar:     0.036 sec    1158.15 x FASTER :D  (avg'd 15 runs)
+# bare RxSimple isa B isa Grammar:     0.036 sec    1158.15 x FASTER :D  (avg'd 15 runs)
 # RxSimple / Hooks_01:                    0.584 sec      72.27 x FASTER :D  (avg'd  5 runs)
 # RxSimple / Hooks_02:                    0.566 sec      74.67 x FASTER :D  (avg'd  5 runs)
 # RxSimple / Hooks_03:                    0.241 sec     175.46 x FASTER :D  (avg'd 10 runs)
