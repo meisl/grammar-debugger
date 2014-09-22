@@ -16,15 +16,15 @@ my class Tracer_01_h03 is Hooks_03 is export {
     method onRegexExit(Str $name, Int $indent, Match $match) {
         say ('|  ' x $indent) ~ '* ' ~
             ($match
-                ?? 'MATCH' ~ self.summary($indent, $match)
-                !! 'FAIL'
+                ?? 'MATCH' ~ " $name" ~ self.summary($indent, $match)
+                !! 'FAIL' ~ " $name"
             )
         ;
     }
 
     method summary(Int $indent, Match $match) {
         my $snippet = $match.Str;
-        my $sniplen = 60 - (3 * $indent);
+        my $sniplen = 600 - (3 * $indent);
         $sniplen > 0
             ?? ' ' ~ $snippet.substr(0, $sniplen).perl
             !! ''

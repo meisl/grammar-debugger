@@ -86,9 +86,8 @@ class Hooks_03 is Metamodel::GrammarHOW {
         # interception code:
         
         my %skip = self.method_table($obj);
-       
-        
         #note %skip.map(*.perl).join("\n");
+        
         for self.methods($obj).grep({ $_ ~~ Regex  ||  $_.name eq any(<parse subparse>) }) -> $m {
             my Str $name = $m.name;
             #note 'skipped: ' ~ $name if %skip{$name}.defined;
@@ -101,6 +100,7 @@ class Hooks_03 is Metamodel::GrammarHOW {
         self.add_method( $obj, "describe", -> |args { self.describe(|args) } );
 
         # Suppress this, so we always hit find_method.
+        #callsame;
     }
 
 }

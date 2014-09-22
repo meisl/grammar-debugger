@@ -8,6 +8,12 @@ use Grammar::Example::RegexSimple;
 # but rather pick 'em in their own lexical scopes below
 
 
+my $scale = 4;
+# tiny:     1
+# small:    2
+# medium:   4
+# large:    8
+# huge:    12
 
 my $t_ref;
 my @legend-exercises = ();
@@ -21,14 +27,13 @@ sub test(Grammar $G where {$_ ~~ Benchmarking}, Int :$repeat = 2, Bool :$referen
     @legend-exercises.push( ($gist => $G.describe));
 
     my $t = 0;
-    my $input = $G.medium-input();
     {
         my $*OUT = class { method print(|x) {}; method flush(|x) {} };
         #my $*ERR = class { method print(|x) {}; method flush(|x) {} };
 
         for 1..$repeat {
             $t -= nqp::p6box_n(nqp::time_n);
-            $G.parse($input);
+            $G.doWork($scale);
             $t += nqp::p6box_n(nqp::time_n);;
         }
         $t = $t / $repeat;
@@ -52,7 +57,7 @@ sub test(Grammar $G where {$_ ~~ Benchmarking}, Int :$repeat = 2, Bool :$referen
 # End of preparations, actual benchmarks start here
 
 my $t = DateTime.now;
-say sprintf("##### %s / %s %s on %s / %s\n```", $t, $*PERL<compiler><name>, $*PERL<compiler><ver>, $*VM<name>, $*OS);
+say sprintf("##### %s / %s %s on %s / %s / scale: %d\n```", $t, $*PERL<compiler><name>, $*PERL<compiler><ver>, $*VM<name>, $*OS, $scale);
 
 
 #$t_ref = 17.969;
@@ -303,6 +308,48 @@ Output completed (1 min 7 sec consumed) - Normal Termination
     * **Tracer_01_h01:** `is Hooks_01` / NO `Term::ANSICOLOR`
     * **Tracer_01_h02:** `is Hooks_02` / NO `Term::ANSICOLOR`
     * **Tracer_01_h03:** `is Hooks_03` / NO `Term::ANSICOLOR`
+
+
+---------- run perl6 ----------
+##### 2014-09-22T16:15:22+0200 / rakudo 2014.03.01 on parrot / MSWin32 / scale: 2
+```
+# RxSimple / Hooks_00:                   21.187 sec       1.00 x reference  (avg'd  1 runs)
+# bare RegexSimple isa B isa Grammar:     0.022 sec     971.87 x FASTER :D  (avg'd  5 runs)
+# RxSimple / Hooks_01:                    0.266 sec      79.77 x FASTER :D  (avg'd  5 runs)
+# RxSimple / Hooks_02:                    0.259 sec      81.68 x FASTER :D  (avg'd  5 runs)
+# RxSimple / Hooks_03:                    0.114 sec     185.69 x FASTER :D  (avg'd 10 runs)
+# RxSimple / Tracer_00_standalone:       52.485 sec       2.48 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_00_h00:              63.157 sec       2.98 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_00_h01:              54.922 sec       2.59 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_00_h02:              57.719 sec       2.72 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_00_h03:              59.750 sec       2.82 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_01_standalone:        0.813 sec      26.08 x FASTER :D  (avg'd  2 runs)
+# RxSimple / Tracer_01_h00:              29.375 sec       1.39 x slower :(  (avg'd  1 runs)
+# RxSimple / Tracer_01_h01:               1.234 sec      17.17 x FASTER :D  (avg'd  1 runs)
+# RxSimple / Tracer_01_h02:               0.828 sec      25.59 x FASTER :D  (avg'd  2 runs)
+# RxSimple / Tracer_01_h03:               0.625 sec      33.90 x FASTER :D  (avg'd  2 runs)
+
+```
+----
+###### Legend:
+  * Tasks
+    * **Rx**: `Grammar::Example::RegexSimple`: basic regex declarations, eg `rule TOP { ^ <foo>* $ }`; able to parse its own body (!)
+  * Exercises
+    * **RxSimple / Hooks_00:** `find_method` wraps Regexes plus `&(sub)parse` - both freshly on each call!
+    * **bare RegexSimple isa B isa Grammar:** without any `use Grammar::*`
+    * **RxSimple / Hooks_01:** !INCORRECT! `find_method` wraps Regexes freshly on each call but `&(sub)parse` are NOT wrapped
+    * **RxSimple / Hooks_02:** `find_method` wraps Regexes freshly on each call but `&(sub)parse` wrapped in `publish_method_cache`
+    * **RxSimple / Hooks_03:** Regexes and `&(sub)parse` wrapped only once each, `find_method` NOT overridden but method cache still disabled
+    * **RxSimple / Tracer_00_standalone:** !INCORRECT! as it was: with `use Term::ANSICOLOR` and *like* `Hooks_01` but does all on itself (directly inherits `Metamodel::GrammarHOW`, no `onRegexEnter`... )
+    * **RxSimple / Tracer_00_h00:** `is Hooks_00` / `use Term::ANSICOLOR`
+    * **RxSimple / Tracer_00_h01:** `is Hooks_01` / `use Term::ANSICOLOR`
+    * **RxSimple / Tracer_00_h02:** `is Hooks_02` / `use Term::ANSICOLOR`
+    * **RxSimple / Tracer_00_h03:** `is Hooks_03` / `use Term::ANSICOLOR`
+    * **RxSimple / Tracer_01_standalone:** !INCORRECT! as it was but NO `Term::ANSICOLOR` and *like* `Hooks_01` but does all on itself (directly inherits `Metamodel::GrammarHOW`, no `onRegexEnter`... )
+    * **RxSimple / Tracer_01_h00:** `is Hooks_00` / NO `Term::ANSICOLOR`
+    * **RxSimple / Tracer_01_h01:** `is Hooks_01` / NO `Term::ANSICOLOR`
+    * **RxSimple / Tracer_01_h02:** `is Hooks_02` / NO `Term::ANSICOLOR`
+    * **RxSimple / Tracer_01_h03:** `is Hooks_03` / NO `Term::ANSICOLOR`
 
 
 

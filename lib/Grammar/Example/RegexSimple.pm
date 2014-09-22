@@ -6,7 +6,7 @@ use v6;
 # In particular do not make it more efficient!
 #
 # Instead make a new grammar - which may well
-# inherit from RegexTiny - and add it to the
+# inherit from RegexSimple - and add it to the
 # benchmark suite.
 #
 # NOTE: we DON'T "use Grammar::Tracer" *here*
@@ -15,16 +15,6 @@ use v6;
 # but rather choose those in benchmarks.pl
 
 role Benchmarking {
-
-    method tiny-input   { !!! }
-    method small-input  { !!! }
-    method medium-input { !!! }
-    method large-input  { !!! }
-    method huge-input   { !!! }
-
-    method describe {
-        'without any `use Grammar::*`'
-    }
 
     method gist {
         my $metaName = self.HOW.HOW.name(self.HOW);
@@ -36,13 +26,19 @@ role Benchmarking {
             }
             return $out;
         } else {
-            return 'RxSimple M / ' ~ $metaName;
+            return 'RxSimple / ' ~ $metaName;
         }
     }
 
+    method describe {
+        'without any `use Grammar::*`'
+    }
+
+    method doWork(Int $scale where {$_ >= 0}) { !!! }
+
 }
 
-grammar RegexSimple does Benchmarking {
+my $grammarBody = Q:to/ENDOFGRAMMARBODY/;
     rule TOP            { ^ <rx_decl>* $ }
     rule  rx_decl       { [ 'rule' | 'token' | 'regex' ] <ident> '{' <rx> '}' }
     rule  rx            { \s* <rx_term> [ '|' <rx_term> ]* }
@@ -77,88 +73,45 @@ grammar RegexSimple does Benchmarking {
         | (\\ <-[\'\n\\]>)
         ]*
     }
+ENDOFGRAMMARBODY
 
-    # -- Benchmarking methods -------------------------------------------------
+my @rules = $grammarBody.lines.grep({ $_ !~~ /^ \s* $/}).join("\n").split(/<?before \v \s* [rule|token|regex]>/);
 
-    method tiny-input() {
-return Q:to/ENDOFHEREDOC/; # uppercase Q: NO interpolation!
+my %texts = %();
+for 1..@rules.elems -> $n {
+    my $text ~= @rules[0..^$n].join("\n");
+    %texts{$n} = $text;
+}
 
-        rule  rx_term       { <rx_factor>+ }
-ENDOFHEREDOC
-    }
+grammar B does Benchmarking {
 
-    method small-input() {
-return Q:to/ENDOFHEREDOC/; # uppercase Q: NO interpolation!
-        rule TOP            { ^ <rx_decl>* $ }
+    method doWork(Int $scale where {$_ >= 0} ) {
+        my $nRules = @rules.elems;
+        #note "doWork($scale) " ~ $nRules;
+        my @results = ().list;
 
-        rule  rx_term       { <rx_factor>+ }
-ENDOFHEREDOC
-    }
-
-    method medium-input() {
-return Q:to/ENDOFHEREDOC/; # uppercase Q: NO interpolation!
-        rule TOP            { ^ <rx_decl>* $ }
-        rule  rx_decl       { [ 'rule' | 'token' | 'regex' ] <ident> '{' <rx> '}' }
-        rule  rx            { \s* <rx_term> [ '|' <rx_term> ]* }
-        rule  rx_term       { <rx_factor>+ }
-ENDOFHEREDOC
-    }
-
-    method large-input() {
-return Q:to/ENDOFHEREDOC/; # uppercase Q: NO interpolation!
-        rule TOP            { ^ <rx_decl>* $ }
-        rule  rx_decl       { [ 'rule' | 'token' | 'regex' ] <ident> '{' <rx> '}' }
-        rule  rx            { \s* <rx_term> [ '|' <rx_term> ]* }
-        rule  rx_term       { <rx_factor>+ }
-        rule  rx_factor     {
-            [ <rx_lit>
-            | <rx_anchor>
-            | <rx_braced>
-            ]
-            <rx_quant>?
+        if $scale == 0 {
+            @results.push(self.parse(''));
+        } else {
+            while $scale > $nRules {
+                @results.push(self.parse(%texts{$nRules}));
+                $scale -= $nRules;
+            }
+            @results.push(self.parse(%texts{$scale}))
+                unless $scale == 0;
         }
-        token rx_lit        { '.'  |  '\\' [ <alpha> | <digit> | <[\'\"\\*$._]> ]  |  \' <sq_str> \' }
-        token rx_anchor     { '^^' | '^' | '$$' | '$' }
-        token rx_quant      { '?' | '*' | '+' }
-ENDOFHEREDOC
-    }
-
-    method huge-input() {
-return Q:to/ENDOFHEREDOC/; # uppercase Q: NO interpolation!
-        rule TOP            { ^ <rx_decl>* $ }
-        rule  rx_decl       { [ 'rule' | 'token' | 'regex' ] <ident> '{' <rx> '}' }
-        rule  rx            { \s* <rx_term> [ '|' <rx_term> ]* }
-        rule  rx_term       { <rx_factor>+ }
-        rule  rx_factor     {
-            [ <rx_lit>
-            | <rx_anchor>
-            | <rx_braced>
-            ]
-            <rx_quant>?
-        }
-        token rx_lit        { '.'  |  '\\' [ <alpha> | <digit> | <[\'\"\\*$._]> ]  |  \' <sq_str> \' }
-        token rx_anchor     { '^^' | '^' | '$$' | '$' }
-        token rx_quant      { '?' | '*' | '+' }
-    
-        token rx_braced {
-            [ '<' <rx_brcd_angle> '>'
-            | '[' <rx> ']'
-            | '(' <rx> ')'
-            ]
-        }
-        token rx_brcd_angle {
-            [ <ident> [ '=' <ident> ]* [ '=' <rx_cclass> ]?
-            | <rx_cclass>
-            ]
-        }
-        token rx_cclass  { <[+-]>?  '['  [ <-[\]\\]>+ | \\ . ]*  ']' }
-
-        token sq_str {
-            [ (<-[\'\n\\]>+)
-            | \\ (<[\'\\]>)
-            | (\\ <-[\'\n\\]>)
-            ]*
-        }
-ENDOFHEREDOC
+        @results;
     }
 }
+
+my $RegexSimple = EVAL('our grammar RegexSimple is B is export {' ~ $grammarBody ~ "\n}");
+
+
+#grammar _RegexSimple is export {}
+
+#UNIT::EXPORT::DEFAULT::<RegexSimple> = $RegexSimple_raw;
+#UNIT::EXPORT::ALL::<RegexSimple> = $RegexSimple_raw;
+
+#say UNIT::EXPORT::ALL::.perl;
+
+
