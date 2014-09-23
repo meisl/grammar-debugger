@@ -9,10 +9,9 @@ sub nqpTime { nqp::p6box_n(nqp::time_n) }
 class GrammarBenchmark {
     has Grammar:T   $.grammarType;
     has             $.metaName;
-    has Grammar:T   $.workGrammar;
-    has             &!factory;
-    has             $!factoryCompileTime;
-    has             &!worker;
+    has Grammar:T   $!workGrammar;
+    has             $!compileTime;
+    has             &!runner;
 
     method grammarName {  $!grammarType.^name  }
 
@@ -43,52 +42,47 @@ class GrammarBenchmark {
             ~ '; }';
     }
 
-    method factory {
-        &!factory // self.compileFactory;
-    }
-
-    method compileFactory {
-        $!factoryCompileTime = -nqpTime;
-        &!factory = EVAL(self.factoryStr);
-        $!factoryCompileTime += nqpTime;
-        &!factory;
-    }
-
-    method factoryCompileTime {
-        self.factory;
-        $!factoryCompileTime;
+    method compileTime {
+        self.workGrammar;
+        $!compileTime;
     }
 
     method workGrammar {
-        $!workGrammar // ($!workGrammar = self.factory()());
+        unless $!workGrammar {
+            $!compileTime = -nqpTime;
+            my &factory = EVAL(self.factoryStr);
+            $!workGrammar = &factory();
+            $!compileTime += nqpTime;
+        }
+        $!workGrammar;
     }
 
-    method worker {
-        &!worker // &!worker = sub (Nat $scale) {
-            my $g = self.workGrammar();
+    method runner {
+        &!runner // &!runner = sub (Nat $scale) {
+            my $g = self.workGrammar;   # don't include compile time
             my $t = -nqpTime;
             my $result := $g.doWork($scale);
             $t += nqpTime;
-            return ($t, self.factoryCompileTime, $result);
+            return ($t, self.compileTime, $result);
         };
     }
 
-    method doWork(Nat $scale, Bool :$captureOUT = True) {
+    method run(Nat $scale, Bool :$captureOUT = True) {
         my @result;
         if $captureOUT {
             my $*OUT = class { method print(|x) {}; method flush(|x) {} };
             #my $*ERR = class { method print(|x) {}; method flush(|x) {} };
-            @result = self.worker()($scale);
+            @result = self.runner()($scale);
         } else {
-            @result = self.worker()($scale);
+            @result = self.runner()($scale);
         }
         @result;
     }
 
     method Str {
-        sprintf('%s (%3.2f s)',
-            self.name, 
-            self.factoryCompileTime
+        sprintf('%s (%4.3f s)',
+            self.name,
+            self.compileTime,
         );
     }
 }
@@ -126,5 +120,5 @@ say @benchmarks.elems ~ ' benchmarks';
 say @benchmarks.join("\n");
 
 my $b := @benchmarks[6];
-say $b.doWork(2);
+say $b.run(2);
 exit;
