@@ -10,7 +10,7 @@ class GrammarBenchmark {
     has Grammar:T   $.grammarType;
     has             $.metaName;
     has Grammar:T   $!workGrammar;
-    has             $!compileTime;
+    has             @!compileTimes = @();
     has             &!runner;
 
     method grammarName {  $!grammarType.^name  }
@@ -42,24 +42,26 @@ class GrammarBenchmark {
             ~ '; }';
     }
 
-    method compileTime {
-        self.workGrammar;
-        $!compileTime;
+    method compileTimes(Nat :$atLeast = 1) {
+        while @!compileTimes.elems < $atLeast {
+            self.compile;
+        }
+        @!compileTimes;
     }
 
-    method workGrammar {
-        unless $!workGrammar {
-            $!compileTime = -nqpTime;
-            my &factory = EVAL(self.factoryStr);
-            $!workGrammar = &factory();
-            $!compileTime += nqpTime;
-        }
+    method compile {
+        my $t = -nqpTime;
+        my &factory = EVAL(self.factoryStr);
+        $!workGrammar = &factory();
+        $t += nqpTime;
+        @!compileTimes.push($t);
         $!workGrammar;
     }
 
     method runner {
         &!runner // &!runner = sub (Nat $scale) {
-            my $g = self.workGrammar;   # don't include compile time
+            my $g = $!workGrammar // self.compile;
+            # Note: don't include compile time, if any
             my $t = -nqpTime;
             my $result := $g.doWork($scale);
             $t += nqpTime;
@@ -82,7 +84,7 @@ class GrammarBenchmark {
     method Str {
         sprintf('%s (%4.3f s)',
             self.name,
-            self.compileTime,
+            self.compileTimes(:atLeast(1)).reduce(* + *) / @!compileTimes.elems,
         );
     }
 }
@@ -107,7 +109,7 @@ sub makeBenchmarks(:@hooks, :@tracers, :@grammars) {
 }
 
 my @benchmarks = makeBenchmarks(
-    :hooks<1 4>,
+    :hooks<0 1 2 3 4>,
     :tracers<0 1>,
     :grammars(
         RxSimple,
@@ -119,6 +121,6 @@ say @benchmarks.elems ~ ' benchmarks';
 
 say @benchmarks.join("\n");
 
-my $b := @benchmarks[6];
-say $b.run(2);
+#my $b := @benchmarks[6];
+#say $b.run(2);
 exit;
