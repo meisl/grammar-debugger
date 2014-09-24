@@ -10,8 +10,10 @@ class GrammarBenchmark {
     has Grammar:T   $.grammarType;
     has             $.metaName;
     has Grammar:T   $!workGrammar;
-    has             @!compileTimes = @();
     has             &!runner;
+    
+    has             @!compileTimes = @();
+    has             %.runs = %();
 
     method grammarName {  $!grammarType.^name  }
 
@@ -65,20 +67,32 @@ class GrammarBenchmark {
             my $t = -nqpTime;
             my $result := $g.doWork($scale);
             $t += nqpTime;
-            return ($t, self.compileTime, $result);
+            return ($t, $result);
         };
     }
 
-    method run(Nat $scale, Bool :$captureOUT = True) {
-        my @result;
-        if $captureOUT {
-            my $*OUT = class { method print(|x) {}; method flush(|x) {} };
-            #my $*ERR = class { method print(|x) {}; method flush(|x) {} };
-            @result = self.runner()($scale);
-        } else {
-            @result = self.runner()($scale);
+    method run(
+        Nat  :$scale,
+        Bool :$captureOUT = True,
+        Nat  :$maxRuns    =  5,
+        Real :$maxTtlSecs = 30
+    ) {
+        my $ttlSecs  = -nqpTime;
+        my $runs     = 0;
+        my ($t, $result);
+        # Do at least one run:
+        while ($runs < $maxRuns) && ($ttlSecs + nqpTime() < $maxTtlSecs) {
+            if $captureOUT {
+                my $*OUT = class { method print(|x) {}; method flush(|x) {} };
+                #my $*ERR = class { method print(|x) {}; method flush(|x) {} };
+                ($t, $result) = self.runner()($scale);
+            } else {
+                ($t, $result) = self.runner()($scale);
+            }
+            %!runs{$scale}.push($t);
+            $runs++;
         }
-        @result;
+        return $t;
     }
 
     method Str {
@@ -89,7 +103,7 @@ class GrammarBenchmark {
     }
 }
 
-sub makeBenchmarks(:@hooks, :@tracers, :@grammars) {
+sub makeBenchmarks(:@hooks, :@tracers, :@additional = [], :@grammars) {
     my @hookNames = @hooks.map({
         sprintf("Hooks_%02d", $_);
     });
@@ -98,29 +112,31 @@ sub makeBenchmarks(:@hooks, :@tracers, :@grammars) {
     });
 
     # put in Any so we have the bare thing as well:
-    my @metaNames = (Any, @hookNames, @tracerNames);
+    my @metaNames = (Any, @hookNames, @tracerNames, @additional);
 
     my @benchmarks = (@grammars X @metaNames).tree.map({
         GrammarBenchmark.new(:grammarType($_[0]), :metaName($_[1]));
     });
 
-
-    return @benchmarks;
+    return @benchmarks.map({$_.name => $_}).hash;
 }
 
-my @benchmarks = makeBenchmarks(
+my $benchmarks = makeBenchmarks(
     :hooks<0 1 2 3 4>,
-    :tracers<0 1>,
+    :tracers<1 0>,
+    :additional<Tracer_00_standalone Tracer_01_standalone>,
     :grammars(
         RxSimple,
 #        ArithLeftRec,
 #        ArithChain,
     )
 );
-say @benchmarks.elems ~ ' benchmarks';
+say $benchmarks.elems ~ ' benchmarks';
+say $benchmarks.perl;
+#say @benchmarks.join("\n");
 
-say @benchmarks.join("\n");
-
-#my $b := @benchmarks[6];
-#say $b.run(2);
+for $benchmarks.kv -> $n, $b {
+    $b.run(:scale(1));
+    say $b.name ~ ': ' ~ $b.runs.perl;
+}
 exit;

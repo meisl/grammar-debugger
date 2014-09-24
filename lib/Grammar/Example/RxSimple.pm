@@ -6,7 +6,7 @@ use v6;
 # In particular do not make it more efficient!
 #
 # Instead make a new grammar - which may well
-# inherit from RegexSimple - and add it to the
+# inherit from this one - and add it to the
 # benchmark suite.
 #
 # NOTE: we DON'T "use Grammar::Tracer" *here*
@@ -38,6 +38,8 @@ role Benchmarking {
 
 }
 
+# Put body of grammar definition into a string because it's
+# both, the definition and sample input at the same time.
 my $grammarBody = Q:to/ENDOFGRAMMARBODY/;
     rule TOP            { ^ <rx_decl>* $ }
     rule  rx_decl       { [ 'rule' | 'token' | 'regex' ] <ident> '{' <rx> '}' }
