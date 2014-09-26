@@ -54,11 +54,13 @@ class Hooks_04 is Metamodel::GrammarHOW {
 
         # Beware: .clone plus .wrap does not always work!
 
-        my $lambda = sub (|args) is hidden_from_backtrace {
+        #my $lambda = sub (|args) is hidden_from_backtrace {
+        my $lambda = -> |args {
             self!onCall($code, args);
             my $result;
             try {
-                $result := $code(|args);
+                #$result := $code(|args);
+                $result := callsame;
             }
             if $!.defined {
                 self!onException($code, args, $!);
@@ -70,8 +72,10 @@ class Hooks_04 is Metamodel::GrammarHOW {
         };
         @.regexes.push($code)
             if $code ~~ Regex;
-
-        return callwith(\obj, $name, $lambda);
+        
+        #return callwith(\obj, $name, $lambda);
+        $code.wrap($lambda);
+        return callsame;
     }
 
     method describe(Mu: |args) {
@@ -93,13 +97,12 @@ class Hooks_04 is Metamodel::GrammarHOW {
             #note 'skipped: ' ~ $name if %skip{$name}.defined;
             next if %skip{$name}.defined;
             %skip{$name} = $m;
-            self.add_method($obj, $name, $m);   # add_method will NOT add it as such, neither use Routine.wrap
+            self.add_method($obj, $name, $m.clone);   # add_method will NOT add it as such, neither use Routine.wrap
         }
         #note %skip.map(*.perl).join("\n");
 
-        self.add_method( $obj, "describe", -> |args { self.describe(|args) } );
+        self.add_method( $obj, "describe", sub (|args) { self.describe(|args) } );
 
-        # Suppress this, so we always hit find_method.
         return callsame;
     }
 

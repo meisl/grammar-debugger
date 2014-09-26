@@ -122,8 +122,8 @@ sub makeBenchmarks(:@hooks, :@tracers, :@additional = [], :@grammars) {
 }
 
 my $benchmarks = makeBenchmarks(
-    :hooks<0 1 2 3 4>,
-    :tracers<1 0>,
+    :hooks(0, 1, 2, 3, 4),
+    :tracers(0, 1),
     :additional<Tracer_00_standalone Tracer_01_standalone>,
     :grammars(
         RxSimple,
@@ -132,11 +132,10 @@ my $benchmarks = makeBenchmarks(
     )
 );
 say $benchmarks.elems ~ ' benchmarks';
-say $benchmarks.perl;
-#say @benchmarks.join("\n");
+say $benchmarks.values.map(*.Str).join("\n");
 
 for $benchmarks.kv -> $n, $b {
-    $b.run(:scale(1));
-    say $b.name ~ ': ' ~ $b.runs.perl;
+    $b.run(:scale(3));
+    say $n ~ ': ' ~ $b.runs.perl;
 }
 exit;

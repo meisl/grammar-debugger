@@ -38,6 +38,33 @@ role Benchmarking {
 
 }
 
+my @rules;
+my %texts;
+
+#grammar B does Benchmarking {
+my $bmBody = Q:to/ENDOFBMBODY/;
+    method doWork(Int $scale where {$_ >= 0} ) {
+        my $nRules = @rules.elems;
+        my @results = ().list;
+        
+        if $scale == 0 {
+            @results.push(self.parse(''));
+        } else {
+            my $n = $scale;
+            while $n > $nRules {
+                @results.push(self.parse(%texts{$nRules}));
+                $n -= $nRules;
+            }
+            #note "doWork($scale) " ~ self.perl ~ '#'  ~ self.^methods.map({$_.name.perl}) ~ "\n\n";
+            my $result = self.parse(%texts{$n});
+            @results.push($result)
+                unless $n == 0;
+        }
+        @results;
+    }
+ENDOFBMBODY
+#}
+
 # Put body of grammar definition into a string because it's
 # both, the definition and sample input at the same time.
 my $grammarBody = Q:to/ENDOFGRAMMARBODY/;
@@ -77,34 +104,17 @@ my $grammarBody = Q:to/ENDOFGRAMMARBODY/;
     }
 ENDOFGRAMMARBODY
 
-my @rules = $grammarBody.lines.grep({ $_ !~~ /^ \s* $/}).join("\n").split(/<?before \v \s* [rule|token|regex]>/);
+@rules = $grammarBody.lines.grep({ $_ !~~ /^ \s* $/}).join("\n").split(/<?before \v \s* [rule|token|regex]>/);
 
-my %texts = %();
+%texts = %();
 for 1..@rules.elems -> $n {
     my $text ~= @rules[0..^$n].join("\n");
     %texts{$n} = $text;
 }
 
-grammar B does Benchmarking {
 
-    method doWork(Int $scale where {$_ >= 0} ) {
-        my $nRules = @rules.elems;
-        #note "doWork($scale) " ~ $nRules;
-        my @results = ().list;
-
-        if $scale == 0 {
-            @results.push(self.parse(''));
-        } else {
-            my $n = $scale;
-            while $n > $nRules {
-                @results.push(self.parse(%texts{$nRules}));
-                $n -= $nRules;
-            }
-            @results.push(self.parse(%texts{$n}))
-                unless $n == 0;
-        }
-        @results;
-    }
-}
-
-my $RegexSimple = EVAL('our grammar RxSimple is B is export {' ~ $grammarBody ~ "\n}");
+my $RegexSimple = EVAL('our grammar RxSimple does Benchmarking is export {' 
+    ~ $grammarBody ~ "\n" 
+    ~ $bmBody ~ "\n"
+    ~ '}'
+);
