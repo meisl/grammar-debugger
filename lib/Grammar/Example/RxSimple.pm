@@ -55,7 +55,6 @@ my $bmBody = Q:to/ENDOFBMBODY/;
                 @results.push(self.parse(%texts{$nRules}));
                 $n -= $nRules;
             }
-            #note "doWork($scale) " ~ self.perl ~ '#'  ~ self.^methods.map({$_.name.perl}) ~ "\n\n";
             my $result = self.parse(%texts{$n});
             @results.push($result)
                 unless $n == 0;
